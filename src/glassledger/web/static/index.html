@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlassLedger | Institutional Paper-Trading & Double-Entry Settlement Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #080c14;
+      --bg-card: rgba(14, 20, 34, 0.75);
+      --bg-card-hover: rgba(20, 28, 48, 0.9);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 240, 255, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-cyan: #00f0ff;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(0, 240, 255, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.07) 0%, transparent 45%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(8, 12, 20, 0.85);
+      backdrop-filter: blur(20px);
+      padding: 0.85rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #000;
+      font-size: 1.15rem;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand-tag {
+      font-size: 0.72rem;
+      background: rgba(0, 240, 255, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    nav {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.825rem;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .nav-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.35);
+    }
+
+    main {
+      flex: 1;
+      padding: 1.75rem 2rem;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards & Grids */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem;
+      backdrop-filter: blur(14px);
+      transition: all 0.2s;
+    }
+    .metric-card:hover {
+      border-color: var(--border-glow);
+      transform: translateY(-2px);
+    }
+    .metric-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+    .metric-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: -0.02em;
+    }
+    .metric-sub {
+      font-size: 0.75rem;
+      margin-top: 0.4rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Panels & Tables */
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(16px);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+    th {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-cyan { background: rgba(0, 240, 255, 0.15); color: #38bdf8; border: 1px solid rgba(0, 240, 255, 0.35); }
+    .badge-rose { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+    .badge-purple { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.35); }
+
+    /* Trace Tree Visualizer */
+    .trace-container {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 1.5rem;
+    }
+    .tree-box {
+      background: rgba(6, 9, 16, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+      line-height: 1.6;
+      max-height: 580px;
+      overflow-y: auto;
+    }
+    .tree-node {
+      padding: 0.65rem 0.85rem;
+      margin: 0.6rem 0;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 3px solid var(--accent-cyan);
+    }
+    .tree-node.journal { border-left-color: var(--accent-amber); }
+    .tree-node.fill { border-left-color: var(--accent-cyan); }
+    .tree-node.order { border-left-color: var(--accent-purple); }
+    .tree-node.decision { border-left-color: var(--accent-rose); }
+    .tree-node.tick { border-left-color: var(--accent-green); }
+
+    .btn {
+      background: var(--accent-cyan);
+      color: #000;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1.1rem;
+      cursor: pointer;
+      font-size: 0.825rem;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: none;
+    }
+    .btn-danger {
+      background: var(--accent-rose);
+      color: #fff;
+    }
+    .btn-danger:hover {
+      box-shadow: 0 0 16px rgba(244, 63, 94, 0.5);
+    }
+
+    input, select, textarea {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">G</div>
+      <div>
+        <div class="brand-title">GlassLedger</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);">Deterministic Hybrid-Persistence Trading Engine (NSE / BSE)</div>
+      </div>
+      <span class="brand-tag" id="headerDbMode">PostgreSQL 16.8 + MongoDB 8.2</span>
+    </div>
+    <nav>
+      <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="nav-btn" onclick="switchTab('journal')">Ledger & Provenance (FR-8)</button>
+      <button class="nav-btn" onclick="switchTab('differ')">Diff Engine (FR-9)</button>
+      <button class="nav-btn" onclick="switchTab('marketdata')">Live Market Data</button>
+      <button class="nav-btn" onclick="switchTab('studio')">Strategy Studio</button>
+      <button class="nav-btn" onclick="switchTab('crashlab')">Crash Safety Lab (FR-10)</button>
+      <button class="nav-btn" onclick="switchTab('databases')">Database Inspector</button>
+      <button class="nav-btn" onclick="switchTab('simulator')">Simulation Runner</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Wallet Balance (INR)</div>
+          <div class="metric-value" style="color: var(--accent-green);" id="mWalletBalance">₹0.0000</div>
+          <div class="metric-sub" id="mReservedCash">Reserved: ₹0.0000</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Portfolio P&L (FR-11)</div>
+          <div class="metric-value" id="mUnrealizedPnl">₹0.0000</div>
+          <div class="metric-sub" id="mRealizedPnl">Realized: ₹0.0000</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Double-Entry Solvency</div>
+          <div class="metric-value" id="mSolvencyState" style="color: var(--accent-green);">BALANCED</div>
+          <div class="metric-sub" id="mJournalTotals">Debits == Credits</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Market Ticks (MongoDB)</div>
+          <div class="metric-value" id="mTotalTicks">0</div>
+          <div class="metric-sub">Time-series price history</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Decisions Logged</div>
+          <div class="metric-value" style="color: var(--accent-purple);" id="mTotalDecisions">0</div>
+          <div class="metric-sub" id="mOrderFillRatio">Orders: 0 | Fills: 0</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📈 Securities Inventory & P&L Valuation (NSE Equities)</div>
+          <button class="btn btn-secondary" onclick="loadOverview()">Refresh</button>
+        </div>
+        <table id="holdingsTable">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Quantity Owned</th>
+              <th>Reserved Qty</th>
+              <th>Weighted Avg Price</th>
+              <th>Current Market Price</th>
+              <th>Total Valuation</th>
+              <th>Unrealized P&L (FR-11)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading inventory...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: JOURNAL & TRACE (FR-8) -->
+    <div id="tab-journal" class="tab-content">
+      <div class="trace-container">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">💰 Double-Entry Journal (PostgreSQL Ledger)</div>
+            <button class="btn btn-secondary" onclick="loadJournal()">Refresh</button>
+          </div>
+          <div style="max-height: 550px; overflow-y: auto;">
+            <table id="journalTable">
+              <thead>
+                <tr>
+                  <th>Entry ID</th>
+                  <th>Account</th>
+                  <th>Debit (₹)</th>
+                  <th>Credit (₹)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading ledger...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📦 Trade Provenance Lineage (FR-8)</div>
+            <span class="badge badge-cyan" id="traceStatus">Select entry</span>
+          </div>
+          <div class="tree-box" id="traceOutput">
+            <div style="color: var(--text-muted); text-align: center; padding: 3rem;">
+              Click <strong>"Trace"</strong> on any journal entry or execution fill to reconstruct the 5-layer causal lineage graph back to the raw tick.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DIFF ENGINE (FR-9) -->
+    <div id="tab-differ" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🔬 Differential Diagnostic Engine (FR-9)</div>
+          <div style="display:flex; gap:0.75rem;">
+            <input type="text" id="diffRun1" value="run_001" style="width:140px;" placeholder="Baseline Run" />
+            <input type="text" id="diffRun2" value="run_002" style="width:140px;" placeholder="Perturbed Run" />
+            <button class="btn" onclick="executeDiff()">Run Comparison</button>
+          </div>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.5rem;">
+          Aligns two execution streams strictly by sequence number (<code style="color:var(--accent-cyan);">evaluation_seq</code>) to detect the exact point and layer of divergence: 
+          <strong>INPUT</strong> (missing tick), <strong>OBSERVATION</strong> (indicator delta), <strong>DECISION</strong> (signal flip), or <strong>SETTLEMENT</strong> (execution mismatch).
+        </p>
+        <div id="diffResultsArea">
+          <div style="text-align:center; padding: 3rem; color:var(--text-muted);">
+            Click <strong>"Run Comparison"</strong> to execute the aligned stream differ between run_001 and run_002.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: LIVE MARKET DATA -->
+    <div id="tab-marketdata" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📡 Real-Time Market Data Feeds (Free NSE & BSE Quotes)</div>
+          <div style="display:flex; gap:0.75rem;">
+            <button class="btn btn-secondary" onclick="loadMarketData()">Refresh Quotes</button>
+            <button class="btn" onclick="ingestLiveTicks()">Ingest Into MongoDB</button>
+          </div>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.25rem;">
+          Queried directly via free Yahoo Finance v8 API. No broker account or paid subscription required. Perfect for live demonstrations.
+        </p>
+        <table id="marketDataTable">
+          <thead>
+            <tr>
+              <th>NSE Symbol</th>
+              <th>Exchange</th>
+              <th>Current Price</th>
+              <th>Previous Close</th>
+              <th>24h Change</th>
+              <th>Volume</th>
+              <th>Feed Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading quotes...</td></tr>
+          </tbody>
+        </table>
+        <div id="ingestFeedback" style="margin-top:1rem;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 5: STRATEGY STUDIO (TIER 1 & TIER 2) -->
+    <div id="tab-studio" class="tab-content">
+      <div class="panel" style="max-width: 900px; margin: 0 auto;">
+        <div class="panel-header">
+          <div class="panel-title">🧪 Strategy Studio (Tier 2 AST Validator & Purity Smoke Test)</div>
+          <span class="badge badge-purple">Pre-Execution Verification</span>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
+          Submit custom Python trading algorithms. The engine parses the AST to block unauthorized imports (<code style="color:var(--accent-rose);">os</code>, <code style="color:var(--accent-rose);">socket</code>, <code style="color:var(--accent-rose);">open</code>) and external clocks (<code style="color:var(--accent-rose);">datetime.now</code>), then executes a purity test for bit-for-bit determinism (FR-7).
+        </p>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy ID</label>
+          <input type="text" id="stratId" value="momentum_v1" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy Class Name</label>
+          <input type="text" id="stratClass" value="MomentumStrategy" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Python Code</label>
+          <textarea id="stratCode" rows="12" style="font-family:var(--font-mono); font-size:0.8rem;">from decimal import Decimal
+from glassledger.domain.models import Signal, Tick
+from glassledger.domain.strategies.base import BaseStrategy
+
+class MomentumStrategy(BaseStrategy):
+    def evaluate(self, state, event, params):
+        new_state = dict(state)
+        price = event.price
+        threshold = Decimal(str(params.get("threshold", "2850.0000")))
+        signal = None
+        if price > threshold:
+            signal = Signal.BUY
+        return new_state, signal, {"threshold": str(threshold), "current_price": str(price)}
+</textarea>
+        </div>
+        <div style="display:flex; gap:1rem;">
+          <button class="btn btn-secondary" onclick="validateCustomStrategy()">Test AST & Purity</button>
+          <button class="btn" onclick="submitCustomStrategy()">Register in MongoDB</button>
+        </div>
+        <div id="studioFeedback" style="margin-top:1.25rem;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 6: CRASH SAFETY LAB (FR-10) -->
+    <div id="tab-crashlab" class="tab-content">
+      <div class="panel" style="max-width: 800px; margin: 0 auto;">
+        <div class="panel-header">
+          <div class="panel-title">🛡️ FR-10 Live OS-Level SIGKILL Crash Safety Lab</div>
+          <span class="badge badge-rose">Subprocess Process Termination</span>
+        </div>
+        <p style="color:var(--text-main); font-size:0.9rem; line-height:1.6; margin-bottom:1.5rem;">
+          Tests the database engine's durability by spawning an independent OS child process that mutates investor balances (<code style="color:var(--accent-rose);">-₹5,000</code>) and inserts an uncommitted order. Before committing, the parent brutally executes <code style="color:var(--accent-rose);">proc.kill()</code> (SIGKILL / TerminateProcess).
+        </p>
+        <button class="btn btn-danger" style="font-size:0.95rem; padding:0.75rem 1.5rem;" onclick="triggerCrashDemo()">
+          ⚡ Execute Subprocess SIGKILL Crash Test
+        </button>
+        <div id="crashOutput" style="margin-top:1.5rem;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 7: DATABASE INSPECTOR -->
+    <div id="tab-databases" class="tab-content">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏛️ Relational Ledger (PostgreSQL 16.8)</div>
+            <span class="badge badge-green" id="relationalEngineBadge">ACID Financial Store</span>
+          </div>
+          <div id="relationalTablesList">Loading tables...</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🍃 Document Store (MongoDB 8.2)</div>
+            <span class="badge badge-purple">Time-Series & Telemetry</span>
+          </div>
+          <div id="documentCollectionsList">Loading collections...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 8: SIMULATION RUNNER -->
+    <div id="tab-simulator" class="tab-content">
+      <div class="panel" style="max-width: 650px; margin: 0 auto;">
+        <div class="panel-header">
+          <div class="panel-title">⚡ Execute Strategy Run</div>
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Run Identifier (Unique)</label>
+          <input type="text" id="simRunId" value="run_003" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy</label>
+          <select id="simStrategy">
+            <option value="rsi_v1">Wilder's RSI (rsi_v1)</option>
+            <option value="ma_v1">Dual SMA Crossover (ma_v1)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Dataset</label>
+          <input type="text" id="simDataset" value="baseline_ticks" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Inject Dropped Tick Seq (Optional - For FR-9 Testing)</label>
+          <input type="number" id="simDropSeq" placeholder="e.g. 1420" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Broker Engine Seam (Select Adapter)</label>
+          <select id="simBroker">
+            <option value="paper">PaperBroker (Deterministic Offline, ₹0 slippage/fee)</option>
+            <option value="shoonya">Shoonya by Finvasia (100% Free API + Free WebSocket)</option>
+            <option value="dhan">DhanHQ API (Free API + Free Market Feed)</option>
+            <option value="kite">Zerodha Kite Connect (₹500/mo Ticker Plan)</option>
+          </select>
+        </div>
+        <button class="btn" style="width:100%; margin-top:1rem;" onclick="triggerRun()">Launch Execution</button>
+        <div id="simOutput" style="margin-top:1.5rem;"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabId === 'dashboard') loadOverview();
+      if (tabId === 'journal') loadJournal();
+      if (tabId === 'marketdata') loadMarketData();
+      if (tabId === 'databases') loadDatabases();
+    }
+
+    async function loadOverview() {
+      try {
+        const res = await fetch('/api/overview');
+        const data = await res.json();
+        
+        document.getElementById('headerDbMode').innerText = data.db_mode;
+        document.getElementById('mWalletBalance').innerText = '₹' + parseFloat(data.investor.wallet_balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 4, maximumFractionDigits: 4});
+        document.getElementById('mReservedCash').innerText = 'Reserved: ₹' + parseFloat(data.investor.reserved_cash || 0).toLocaleString('en-IN', {minimumFractionDigits: 4, maximumFractionDigits: 4});
+        
+        const unPnl = parseFloat(data.pnl?.unrealized_pnl || 0);
+        const elUnPnl = document.getElementById('mUnrealizedPnl');
+        elUnPnl.innerText = (unPnl >= 0 ? '+₹' : '-₹') + Math.abs(unPnl).toFixed(4);
+        elUnPnl.style.color = unPnl >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
+
+        const relPnl = parseFloat(data.pnl?.realized_pnl || 0);
+        document.getElementById('mRealizedPnl').innerText = 'Realized: ₹' + relPnl.toFixed(4);
+
+        const isBalanced = data.journal_totals.is_balanced;
+        document.getElementById('mSolvencyState').innerText = isBalanced ? 'BALANCED' : 'UNBALANCED';
+        document.getElementById('mSolvencyState').style.color = isBalanced ? 'var(--accent-green)' : 'var(--accent-rose)';
+        document.getElementById('mJournalTotals').innerText = `Debits: ₹${parseFloat(data.journal_totals.total_debit).toFixed(2)} == Credits: ₹${parseFloat(data.journal_totals.total_credit).toFixed(2)}`;
+
+        document.getElementById('mTotalTicks').innerText = data.counts.ticks.toLocaleString();
+        document.getElementById('mTotalDecisions').innerText = data.counts.decisions.toLocaleString();
+        document.getElementById('mOrderFillRatio').innerText = `Orders: ${data.counts.orders} | Fills: ${data.counts.fills}`;
+
+        // Render Holdings Table
+        const tbody = document.querySelector('#holdingsTable tbody');
+        tbody.innerHTML = '';
+        if (data.holdings.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No securities owned yet.</td></tr>';
+        } else {
+          data.holdings.forEach(h => {
+            const valuation = parseFloat(h.current_valuation || 0).toFixed(4);
+            const pnlVal = parseFloat(h.unrealized_pnl || 0);
+            const pnlColor = pnlVal >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
+            const pnlSign = pnlVal >= 0 ? '+₹' : '-₹';
+
+            tbody.innerHTML += `
+              <tr>
+                <td><strong style="color:var(--accent-cyan);">${h.symbol}</strong></td>
+                <td>${h.quantity} shares</td>
+                <td>${h.reserved_quantity}</td>
+                <td>₹${parseFloat(h.avg_buy_price).toFixed(4)}</td>
+                <td>₹${parseFloat(h.current_price || h.avg_buy_price).toFixed(4)}</td>
+                <td style="color:var(--text-main);">₹${valuation}</td>
+                <td style="color:${pnlColor}; font-weight:600;">${pnlSign}${Math.abs(pnlVal).toFixed(4)}</td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load overview", err);
+      }
+    }
+
+    async function loadJournal() {
+      try {
+        const res = await fetch('/api/journal?limit=30');
+        const rows = await res.json();
+        const tbody = document.querySelector('#journalTable tbody');
+        tbody.innerHTML = '';
+        rows.forEach(r => {
+          tbody.innerHTML += `
+            <tr>
+              <td style="font-size:0.75rem;">${r.entry_id}</td>
+              <td><span class="badge ${r.ledger_account === 'CASH' ? 'badge-amber' : r.ledger_account === 'SECURITIES_AT_COST' ? 'badge-cyan' : 'badge-rose'}">${r.ledger_account}</span></td>
+              <td style="color:${parseFloat(r.debit) > 0 ? 'var(--accent-green)' : 'var(--text-muted)'};">₹${parseFloat(r.debit).toFixed(4)}</td>
+              <td style="color:${parseFloat(r.credit) > 0 ? 'var(--accent-rose)' : 'var(--text-muted)'};">₹${parseFloat(r.credit).toFixed(4)}</td>
+              <td>
+                <button class="btn btn-secondary" style="padding:0.25rem 0.6rem; font-size:0.75rem;" onclick="traceEntry('${r.entry_id}')">Trace</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error("Failed to load journal", err);
+      }
+    }
+
+    async function traceEntry(entryId) {
+      document.getElementById('traceStatus').innerText = 'Tracing ' + entryId;
+      const box = document.getElementById('traceOutput');
+      box.innerHTML = '<div style="color:var(--accent-cyan); padding:2rem; text-align:center;">Traversing cross-store causal lineage backwards...</div>';
+      
+      try {
+        const res = await fetch('/api/trace/' + encodeURIComponent(entryId));
+        const data = await res.json();
+
+        if (data.error) {
+          box.innerHTML = `<div style="color:var(--accent-rose);">${data.error}</div>`;
+          return;
+        }
+
+        const j = data.journal;
+        const f = data.fill;
+        const o = data.order;
+        const p = data.provenance || {};
+        const tick = p.trigger_tick || {};
+        const inds = p.indicator_state || {};
+
+        let indDetails = Object.entries(inds).map(([k, v]) => `<div>${k}: <strong style="color:var(--accent-cyan);">${v}</strong></div>`).join('');
+
+        box.innerHTML = `
+          <div style="font-size:0.9rem; font-weight:700; color:var(--accent-green); margin-bottom:1rem;">
+            ✔ Complete Provenance Verified: ${j.entry_id}
+          </div>
+          
+          <div class="tree-node journal">
+            <div style="color:var(--accent-amber); font-weight:600;">1. 💰 Financial Movement (PostgreSQL ACID Ledger)</div>
+            <div>Account: <strong>${j.account}</strong></div>
+            <div>Debit: <span style="color:var(--accent-green);">₹${j.debit}</span> | Credit: <span style="color:var(--accent-rose);">₹${j.credit}</span></div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Timestamp: ${j.created_at}</div>
+          </div>
+
+          <div class="tree-node fill">
+            <div style="color:var(--accent-cyan); font-weight:600;">2. ⚡ Execution Fill</div>
+            <div>Fill ID: <strong>${f.fill_id}</strong></div>
+            <div>Shares: <strong>${f.quantity}</strong> @ ₹${f.price} (Fee: ₹${f.fee})</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Settled: ${f.executed_at}</div>
+          </div>
+
+          <div class="tree-node order">
+            <div style="color:var(--accent-purple); font-weight:600;">3. 📋 Order Intent (Reservation Locked)</div>
+            <div>Order ID: <strong>${o.order_id}</strong></div>
+            <div>Side: <strong>${o.side}</strong> | Symbol: <strong>${o.symbol}</strong> @ ₹${o.price}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Decision Ref: ${o.decision_ref}</div>
+          </div>
+
+          <div class="tree-node decision">
+            <div style="color:var(--accent-rose); font-weight:600;">4. 🧠 Pure Strategy VM Decision (MongoDB)</div>
+            <div>Decision ID: <strong>${p.decision_id || 'N/A'}</strong></div>
+            <div>Signal Generated: <span class="badge ${p.signal === 'BUY' ? 'badge-green' : 'badge-rose'}">${p.signal || 'N/A'}</span> (Seq #${p.evaluation_seq || 'N/A'})</div>
+            <div style="margin-top:0.4rem; padding-top:0.4rem; border-top:1px solid rgba(255,255,255,0.06); font-size:0.8rem;">
+              ${indDetails}
+            </div>
+          </div>
+
+          <div class="tree-node tick">
+            <div style="color:var(--accent-green); font-weight:600;">5. ⏱️ Originating Market Tick (MongoDB Time-Series)</div>
+            <div>Event ID: <strong>${tick.event_id || 'N/A'}</strong></div>
+            <div>Tick Price: <strong>₹${tick.price || 'N/A'}</strong> | Volume: ${tick.volume || 'N/A'}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Tick Timestamp: ${tick.timestamp || 'N/A'}</div>
+          </div>
+        `;
+      } catch (err) {
+        box.innerHTML = `<div style="color:var(--accent-rose);">Trace query failed: ${err}</div>`;
+      }
+    }
+
+    async function executeDiff() {
+      const run1 = document.getElementById('diffRun1').value.trim();
+      const run2 = document.getElementById('diffRun2').value.trim();
+      const area = document.getElementById('diffResultsArea');
+      area.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--accent-cyan);">Running stream comparator & divergence classification...</div>';
+
+      try {
+        const res = await fetch(`/api/diff?run1=${encodeURIComponent(run1)}&run2=${encodeURIComponent(run2)}`);
+        const data = await res.json();
+
+        if (data.identical) {
+          area.innerHTML = `
+            <div style="background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.3); border-radius:12px; padding:2rem; text-align:center;">
+              <h3 style="color:var(--accent-green); margin-bottom:0.5rem;">✔ 100% BIT-FOR-BIT DETERMINISTIC PARITY</h3>
+              <p style="color:var(--text-muted);">Verified across ${data.total_sequences_verified} sequence numbers without divergence in inputs, observations, decisions, or settlement.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const cls = data.classification;
+        const seq = data.first_divergence_seq;
+        const r1 = data.run_1_state || {};
+        const r2 = data.run_2_state || {};
+
+        area.innerHTML = `
+          <div style="background:rgba(244, 63, 94, 0.1); border:1px solid rgba(244, 63, 94, 0.3); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <span class="badge badge-rose" style="font-size:0.85rem;">DIVERGENCE AT SEQUENCE #${seq}</span>
+                <span class="badge badge-amber" style="margin-left:0.5rem; font-size:0.85rem;">LAYER: ${cls}</span>
+              </div>
+            </div>
+            <p style="color:var(--text-main); margin-top:0.75rem; font-size:0.95rem;">${data.reason}</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Layer Component</th>
+                <th>Baseline (${run1})</th>
+                <th>Comparison (${run2})</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Trigger Market Tick</strong></td>
+                <td><code>${JSON.stringify(r1.trigger_tick || 'MISSING')}</code></td>
+                <td><code>${JSON.stringify(r2.trigger_tick || 'MISSING')}</code></td>
+              </tr>
+              <tr>
+                <td><strong>Indicator State</strong></td>
+                <td><code>${JSON.stringify(r1.indicator_state || 'N/A')}</code></td>
+                <td><code>${JSON.stringify(r2.indicator_state || 'N/A')}</code></td>
+              </tr>
+              <tr>
+                <td><strong>Signal Generated</strong></td>
+                <td><span class="badge badge-green">${r1.signal || 'N/A'}</span></td>
+                <td><span class="badge badge-rose">${r2.signal || 'N/A'}</span></td>
+              </tr>
+              <tr>
+                <td><strong>Settlement Order ID</strong></td>
+                <td>${r1.order_id || 'None'}</td>
+                <td>${r2.order_id || 'None'}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        area.innerHTML = `<div style="color:var(--accent-rose);">Diff failed: ${err}</div>`;
+      }
+    }
+
+    async function loadMarketData() {
+      const tbody = document.querySelector('#marketDataTable tbody');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Fetching live NSE quotes...</td></tr>';
+      try {
+        const res = await fetch('/api/market-data/live');
+        const data = await res.json();
+        tbody.innerHTML = '';
+        data.quotes.forEach(q => {
+          const isUp = q.change.startsWith('+');
+          const color = isUp ? 'var(--accent-green)' : 'var(--accent-rose)';
+          tbody.innerHTML += `
+            <tr>
+              <td><strong style="color:var(--accent-cyan);">${q.symbol}</strong></td>
+              <td><span class="badge badge-purple">${q.exchange}</span></td>
+              <td style="font-weight:700;">₹${q.price}</td>
+              <td style="color:var(--text-muted);">₹${q.previous_close}</td>
+              <td style="color:${color}; font-weight:600;">${q.change} (${q.change_pct})</td>
+              <td>${q.volume.toLocaleString()}</td>
+              <td><span class="badge badge-green">${q.status}</span></td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--accent-rose);">Failed to load live feed: ${err}</td></tr>`;
+      }
+    }
+
+    async function ingestLiveTicks() {
+      const fb = document.getElementById('ingestFeedback');
+      fb.innerHTML = '<div style="color:var(--accent-cyan);">Ingesting live quotes into MongoDB time-series...</div>';
+      try {
+        const res = await fetch('/api/market-data/ingest-live', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ symbols: ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "TATAMOTORS.NS"] }),
+        });
+        const data = await res.json();
+        fb.innerHTML = `<div style="color:var(--accent-green); background:rgba(16,185,129,0.1); padding:0.75rem; border-radius:8px;">✔ Successfully ingested ${data.ingested_count} live NSE ticks into price_history. Total ticks in DB: ${data.total_ticks_in_db}.</div>`;
+        loadOverview();
+      } catch (err) {
+        fb.innerHTML = `<div style="color:var(--accent-rose);">Ingestion failed: ${err}</div>`;
+      }
+    }
+
+    async function validateCustomStrategy() {
+      const code = document.getElementById('stratCode').value;
+      const className = document.getElementById('stratClass').value.trim();
+      const fb = document.getElementById('studioFeedback');
+      fb.innerHTML = '<div style="color:var(--accent-cyan);">Running AST Security Check and Purity Smoke Test...</div>';
+
+      try {
+        const res = await fetch('/api/strategy/validate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ code, class_name: className }),
+        });
+        const data = await res.json();
+        if (data.valid) {
+          fb.innerHTML = `
+            <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:1rem; border-radius:8px;">
+              <h4 style="color:var(--accent-green);">✔ PASSED ALL INVARIANTS</h4>
+              <p style="color:var(--text-main); font-size:0.85rem; margin-top:0.4rem;">${data.message}</p>
+            </div>
+          `;
+        } else {
+          let violList = (data.violations || []).map(v => `<li>${v}</li>`).join('');
+          fb.innerHTML = `
+            <div style="background:rgba(244, 63, 94, 0.15); border:1px solid var(--accent-rose); padding:1rem; border-radius:8px;">
+              <h4 style="color:var(--accent-rose);">❌ REJECTED AT ${data.stage}</h4>
+              <p style="color:var(--text-main); font-size:0.85rem; margin-top:0.4rem;">${data.message}</p>
+              <ul style="color:var(--accent-rose); font-size:0.8rem; margin-top:0.5rem; padding-left:1.5rem;">${violList}</ul>
+            </div>
+          `;
+        }
+      } catch (err) {
+        fb.innerHTML = `<div style="color:var(--accent-rose);">Validation error: ${err}</div>`;
+      }
+    }
+
+    async function submitCustomStrategy() {
+      const code = document.getElementById('stratCode').value;
+      const className = document.getElementById('stratClass').value.trim();
+      const stratId = document.getElementById('stratId').value.trim();
+      const fb = document.getElementById('studioFeedback');
+
+      try {
+        const res = await fetch('/api/strategy/submit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ strategy_id: stratId, name: "Custom " + className, class_name: className, code }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          fb.innerHTML = `
+            <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:1rem; border-radius:8px;">
+              <h4 style="color:var(--accent-green);">✔ STRATEGY REGISTERED</h4>
+              <p style="color:var(--text-main); font-size:0.85rem; margin-top:0.4rem;">Registered ${data.strategy_id} into MongoDB 'strategies' collection. Ready for simulation execution.</p>
+            </div>
+          `;
+        } else {
+          fb.innerHTML = `<div style="color:var(--accent-rose);">Error: ${data.detail}</div>`;
+        }
+      } catch (err) {
+        fb.innerHTML = `<div style="color:var(--accent-rose);">Submission failed: ${err}</div>`;
+      }
+    }
+
+    async function triggerCrashDemo() {
+      const out = document.getElementById('crashOutput');
+      out.innerHTML = '<div style="color:var(--accent-cyan);">Spawning child OS worker, mutating PostgreSQL uncommitted balance, and sending SIGKILL...</div>';
+
+      try {
+        const res = await fetch('/api/test/crash-recovery', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' });
+        const data = await res.json();
+
+        out.innerHTML = `
+          <div style="background:rgba(16, 185, 129, 0.12); border:1px solid var(--accent-green); border-radius:12px; padding:1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <h3 style="color:var(--accent-green);">✔ CRASH SAFETY VERIFIED (FR-10)</h3>
+              <span class="badge badge-green">${data.os_kill_signal}</span>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:0.85rem; line-height:1.8;">
+              <div>Initial Wallet Balance: <strong>₹${data.initial_balance}</strong></div>
+              <div>Uncommitted Mutation Attempted: <span style="color:var(--accent-rose);">${data.uncommitted_mutation_attempted}</span></div>
+              <div>Child Process Termination: <strong>Brutal OS SIGKILL (proc.kill())</strong></div>
+              <div>Post-Crash Re-Query Balance: <strong style="color:var(--accent-green);">₹${data.post_crash_balance}</strong> (100% Restored)</div>
+              <div>Orphaned Orders Persisted in Database: <strong style="color:var(--accent-green);">${data.orphaned_orders_in_db}</strong></div>
+              <div>Crash & Rollback Elapsed Time: <strong>${data.elapsed_seconds}s</strong></div>
+            </div>
+            <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.825rem; color:var(--text-muted);">
+              ${data.explanation}
+            </div>
+          </div>
+        `;
+        loadOverview();
+      } catch (err) {
+        out.innerHTML = `<div style="color:var(--accent-rose);">Crash demo failed: ${err}</div>`;
+      }
+    }
+
+    async function loadDatabases() {
+      try {
+        const res = await fetch('/api/databases');
+        const data = await res.json();
+
+        // Relational
+        const rList = document.getElementById('relationalTablesList');
+        rList.innerHTML = '';
+        for (const [tbl, info] of Object.entries(data.relational_store.tables)) {
+          rList.innerHTML += `
+            <div style="margin-bottom:1rem; padding:1rem; border:1px solid var(--border-subtle); border-radius:8px; background:rgba(0,0,0,0.25);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                <strong style="color:var(--accent-cyan);">${tbl}</strong>
+                <span class="badge badge-cyan">${info.count} rows</span>
+              </div>
+              <pre style="font-size:0.7rem; color:var(--text-muted); overflow-x:auto;">${JSON.stringify(info.sample.slice(0, 2), null, 2)}</pre>
+            </div>
+          `;
+        }
+
+        // Mongo
+        const mList = document.getElementById('documentCollectionsList');
+        mList.innerHTML = '';
+        for (const [coll, info] of Object.entries(data.document_store.collections)) {
+          mList.innerHTML += `
+            <div style="margin-bottom:1rem; padding:1rem; border:1px solid var(--border-subtle); border-radius:8px; background:rgba(0,0,0,0.25);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                <strong style="color:var(--accent-purple);">${coll}</strong>
+                <span class="badge badge-purple">${info.count} documents</span>
+              </div>
+              <pre style="font-size:0.7rem; color:var(--text-muted); overflow-x:auto;">${JSON.stringify(info.sample.slice(0, 1), null, 2)}</pre>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error("Failed to load databases", err);
+      }
+    }
+
+    async function triggerRun() {
+      const runId = document.getElementById('simRunId').value.trim();
+      const strategy = document.getElementById('simStrategy').value;
+      const dataset = document.getElementById('simDataset').value.trim();
+      const dropSeqVal = document.getElementById('simDropSeq').value.trim();
+      const broker = document.getElementById('simBroker').value;
+      const dropSeq = dropSeqVal ? parseInt(dropSeqVal) : null;
+
+      const out = document.getElementById('simOutput');
+      out.innerHTML = '<div style="color:var(--accent-cyan);">Executing simulation...</div>';
+
+      try {
+        const res = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ run_id: runId, strategy, dataset, drop_seq: dropSeq, broker }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          out.innerHTML = `
+            <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:1rem; border-radius:8px;">
+              <h4 style="color:var(--accent-green); margin-bottom:0.5rem;">✔ Run ${data.run_id} Completed!</h4>
+              <div>Ticks Evaluated: <strong>${data.ticks_evaluated}</strong></div>
+              <div>Orders Placed: <strong>${data.orders_placed}</strong> | Fills: <strong>${data.fills_settled}</strong></div>
+              <div>Final Wallet Balance: <strong>₹${data.wallet_balance}</strong></div>
+              <div>Double-Entry Debits == Credits: <strong>₹${data.total_debit}</strong></div>
+            </div>
+          `;
+          loadOverview();
+        } else {
+          out.innerHTML = `<div style="color:var(--accent-rose);">Error: ${data.detail}</div>`;
+        }
+      } catch (err) {
+        out.innerHTML = `<div style="color:var(--accent-rose);">Simulation failed: ${err}</div>`;
+      }
+    }
+
+    // Initial load
+    loadOverview();
+  </script>
+</body>
+</html>
