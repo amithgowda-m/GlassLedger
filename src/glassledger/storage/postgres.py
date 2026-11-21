@@ -27,8 +27,11 @@ class PostgresStorage:
         self.uri = connection_uri or settings.postgres_uri
         self._pool: Optional[ConnectionPool] = None
         self._probed: Optional[bool] = None
-        self.is_sqlite_fallback: bool = False
         self._sqlite_path = Path("data/glassledger_ledger.db")
+
+    @property
+    def is_sqlite_fallback(self) -> bool:
+        return not self._probe_postgres()
 
     def _probe_postgres(self) -> bool:
         """Instantaneous TCP socket check for PostgreSQL port 5432."""
@@ -46,7 +49,6 @@ class PostgresStorage:
 
     def open(self) -> None:
         if self._probe_postgres():
-            self.is_sqlite_fallback = False
             if self._pool is None:
                 self._pool = ConnectionPool(
                     conninfo=self.uri,
@@ -55,7 +57,6 @@ class PostgresStorage:
                     kwargs={"row_factory": dict_row},
                 )
         else:
-            self.is_sqlite_fallback = True
             self._sqlite_path.parent.mkdir(parents=True, exist_ok=True)
 
     def close(self) -> None:
@@ -217,13 +218,15 @@ class PostgresStorage:
                 )
                 conn.execute(
                     """
-                    INSERT OR REPLACE INTO stocks (symbol, company_name, sector, current_price)
+                    INSERT INTO stocks (symbol, company_name, sector, current_price)
                     VALUES 
                         ('RELIANCE', 'Reliance Industries Ltd.', 'Energy', 2850.0000),
                         ('TCS', 'Tata Consultancy Services', 'Technology', 3920.0000),
                         ('INFY', 'Infosys Ltd.', 'Technology', 1840.0000),
                         ('HDFCBANK', 'HDFC Bank Ltd.', 'Banking', 1650.0000),
-                        ('AAPL', 'Apple Inc.', 'Technology', 19500.0000);
+                        ('AAPL', 'Apple Inc.', 'Technology', 19500.0000)
+                    ON CONFLICT (symbol) DO UPDATE 
+                    SET current_price = EXCLUDED.current_price;
                     """
                 )
             conn.close()

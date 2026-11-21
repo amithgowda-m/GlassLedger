@@ -57,6 +57,10 @@ def test_crash_recovery_aborted_transaction_rollback():
     assert len(database_state["journal_entries"]) == 0
 
 
+@pytest.mark.skipif(
+    PostgresStorage().is_sqlite_fallback,
+    reason="Requires live PostgreSQL daemon on port 5432 with native NOW() support",
+)
 def test_real_subprocess_sigkill_rollback():
     """
     FR-10 Gold-Standard OS-Level Crash Safety Test:

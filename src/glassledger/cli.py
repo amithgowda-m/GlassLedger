@@ -56,7 +56,8 @@ def db_migrate() -> None:
 
         pg.run_migrations(str(pg_migration_path))
         pg.seed_reference_data()
-        console.print("[green][OK] PostgreSQL:[/green] Initial schema, constraints, and reference seeds applied.")
+        mode_str = " [yellow](SQLite fallback)[/yellow]" if pg.is_sqlite_fallback else ""
+        console.print(f"[green][OK] PostgreSQL:{mode_str}[/green] Initial schema, constraints, and reference seeds applied.")
     except Exception as e:
         console.print(f"[bold red]PostgreSQL Migration Failed:[/bold red] {e}")
         console.print("[yellow]Ensure PostgreSQL is running on port 5432 (or via Docker Compose: `docker compose up -d postgres`)[/yellow]")
@@ -66,17 +67,45 @@ def db_migrate() -> None:
     mongo = MongoStorage()
     try:
         mongo.run_migrations()
-        console.print("[green][OK] MongoDB:[/green] Time-series collection 'price_history' and $jsonSchema validators configured.")
+        mode_str = " [yellow](SQLite fallback)[/yellow]" if mongo.is_sqlite_fallback else ""
+        console.print(f"[green][OK] MongoDB:{mode_str}[/green] Time-series collection 'price_history' and $jsonSchema validators configured.")
+
+        # If price_history is empty, auto-seed default baseline ticks & strategies for immediate out-of-the-box readiness
+        if mongo.db.price_history.count_documents({}) == 0:
+            synth_path = Path("data/synthetic_ticks.csv")
+            if synth_path.exists():
+                ticks = Sequencer.load_csv(str(synth_path))
+                inserted_count = mongo.save_ticks(ticks, dataset_name="baseline_ticks")
+                mongo.save_strategy(
+                    StrategyConfig(
+                        strategy_id="rsi_v1",
+                        investor_id=1,
+                        strategy_type=StrategyType.RSI_THRESHOLD,
+                        parameters={"period": 14, "oversold": "30.0000", "overbought": "70.0000"},
+                    )
+                )
+                mongo.save_strategy(
+                    StrategyConfig(
+                        strategy_id="ma_v1",
+                        investor_id=1,
+                        strategy_type=StrategyType.MA_CROSSOVER,
+                        parameters={"fast_period": 10, "slow_period": 30},
+                    )
+                )
+                console.print(f"[green][OK] Seeded:[/green] {inserted_count} baseline ticks into 'price_history' & registered default strategies (rsi_v1, ma_v1).")
     except Exception as e:
         console.print(f"[bold red]MongoDB Migration Failed:[/bold red] {e}")
         console.print("[yellow]Ensure MongoDB is running on port 27017 (or via Docker Compose: `docker compose up -d mongo`)[/yellow]")
         raise typer.Exit(1)
 
+    pg_desc = "PostgreSQL" + (" (SQLite fallback: data/glassledger_ledger.db)" if pg.is_sqlite_fallback else " (Port 5432)")
+    mongo_desc = "MongoDB" + (" (SQLite fallback: data/glassledger_telemetry.db)" if mongo.is_sqlite_fallback else " (Port 27017)")
+
     console.print(
         Panel(
             "[bold green]Database migrations successfully applied![/bold green]\n"
-            "ACID Financial Ledger: [cyan]PostgreSQL[/cyan]\n"
-            "Telemetry & Time-Series: [cyan]MongoDB[/cyan]",
+            f"ACID Financial Ledger: [cyan]{pg_desc}[/cyan]\n"
+            f"Telemetry & Time-Series: [cyan]{mongo_desc}[/cyan]",
             border_style="green",
         )
     )
