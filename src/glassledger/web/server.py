@@ -16,8 +16,10 @@ from pydantic import BaseModel
 from glassledger.config import settings
 from glassledger.diagnostics.differ import Differ
 from glassledger.diagnostics.tracer import Tracer
-from glassledger.domain.models import Tick
+from glassledger.diagnostics.reconciler import CrossStoreReconciler
+from glassledger.domain.models import DecisionSnapshot, OrderIntent, OrderSide, OrderStatus, Signal, Tick
 from glassledger.engine.broker import KiteBroker, PaperBroker, get_broker
+from glassledger.engine.portfolio import PortfolioManager
 from glassledger.engine.runner import Runner
 from glassledger.engine.strategy_loader import (
     load_strategy_from_source,
@@ -27,7 +29,7 @@ from glassledger.engine.strategy_loader import (
 from glassledger.storage.mongo import MongoStorage
 from glassledger.storage.postgres import PostgresStorage
 
-app = FastAPI(title="GlassLedger Institutional Console", version="0.2.0")
+app = FastAPI(title="GlassLedger Auditable Trading Console", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,6 +85,14 @@ class SubmitStrategyRequest(BaseModel):
 class LiveIngestRequest(BaseModel):
     symbols: list[str] = ["RELIANCE.NS", "TCS.NS", "AAPL", "TSLA"]
     count_per_symbol: int = 3
+
+
+class TradeExecuteRequest(BaseModel):
+    symbol: str
+    side: str = "BUY"  # BUY or SELL
+    quantity: int = 10
+    price: Optional[Decimal] = None
+    broker: str = "paper"
 
 
 @app.get("/api/status")
@@ -415,6 +425,175 @@ def ingest_live_ticks(req: LiveIngestRequest) -> dict[str, Any]:
     }
 
 
+@app.get("/api/wallet/summary")
+def get_virtual_wallet_summary() -> dict[str, Any]:
+    """
+    Virtual Wallet & Portfolio Analytics.
+    Returns portfolio valuation, NAV per unit, number of units, XIRR, and holdings breakdown.
+    """
+    active_pg = get_pg()
+    pm = PortfolioManager(pg=active_pg)
+    return pm.get_portfolio_summary(1)
+
+
+@app.get("/api/reconcile")
+def run_cross_store_reconciliation(run_id: Optional[str] = Query(None)) -> dict[str, Any]:
+    """
+    FR-12 Cross-Store Consistency Auditor.
+    Scans for orphan decisions in MongoDB and orphan orders/fills in PostgreSQL.
+    """
+    active_pg = get_pg()
+    reconciler = CrossStoreReconciler(pg=active_pg, mongo=mongo)
+    return reconciler.reconcile(run_id=run_id)
+
+
+@app.post("/api/trade/execute")
+def execute_virtual_trade(req: TradeExecuteRequest) -> dict[str, Any]:
+    """
+    Executes a virtual trade directly from the Live Market Data tab.
+    - Follows FR-12 Write Order: Decision logged to MongoDB BEFORE settlement.
+    - Computes FR-13 statutory fee breakdown (Brokerage, STT, Exchange, GST).
+    - Applies double-entry balanced journal lines in PostgreSQL/SQLite.
+    - Instantly updates user's Virtual Wallet portfolio without real money.
+    """
+    active_pg = get_pg()
+    clean_sym = req.symbol.replace(".NS", "").replace(".BO", "").strip().upper()
+    side_str = req.side.strip().upper()
+    if side_str not in ("BUY", "SELL"):
+        raise HTTPException(status_code=400, detail="Order side must be BUY or SELL")
+
+    side = OrderSide.BUY if side_str == "BUY" else OrderSide.SELL
+    qty = int(req.quantity)
+    if qty <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be strictly positive")
+
+    trade_price = req.price
+    if trade_price is None or trade_price <= Decimal("0.0000"):
+        quotes = get_live_market_data(clean_sym + ".NS," + clean_sym)
+        found_price = None
+        for q in quotes.get("quotes", []):
+            try:
+                found_price = Decimal(q["price"])
+                break
+            except Exception:
+                pass
+        trade_price = found_price if found_price else Decimal("100.0000")
+
+    ts_now = datetime.now(timezone.utc)
+    ms_stamp = int(time.time() * 1000)
+    decision_id = f"dec_trade_{clean_sym}_{ms_stamp}"
+    order_id = f"ord_trade_{clean_sym}_{ms_stamp}"
+
+    # Calculate reservation for BUY
+    if side == OrderSide.BUY:
+        cushion = settings.default_fee_rate + Decimal("0.0030")
+        reserved_amount = (Decimal(qty) * trade_price * (Decimal("1.0000") + cushion)).quantize(Decimal("0.0001"))
+    else:
+        reserved_amount = Decimal("0.0000")
+
+    order = OrderIntent(
+        order_id=order_id,
+        investor_id=1,
+        symbol=clean_sym,
+        side=side,
+        quantity=qty,
+        price=trade_price,
+        reserved_amount=reserved_amount,
+        status=OrderStatus.PENDING,
+        decision_ref=decision_id,
+        created_at=ts_now,
+    )
+
+    # 1. FR-12 REQUIRED WRITE ORDERING: Log decision to MongoDB FIRST
+    decision = DecisionSnapshot(
+        decision_id=decision_id,
+        strategy_id="manual_virtual_trade@ui",
+        evaluation_seq=mongo.db.strategy_execution_log.count_documents({}) + 1,
+        trigger_tick={
+            "event_id": f"evt_manual_{clean_sym}_{ms_stamp}",
+            "symbol": clean_sym,
+            "price": str(trade_price),
+            "volume": qty * 100,
+            "timestamp": ts_now.isoformat(),
+        },
+        indicator_state={"source": "Live Market Data UI", "manual_trade": True},
+        signal=Signal.BUY if side == OrderSide.BUY else Signal.SELL,
+        order_id=order_id,
+    )
+    mongo.log_decision(decision)
+
+    # 2. Broker execution with FR-13 realistic fee model
+    broker_adapter = get_broker(req.broker)
+    fill = broker_adapter.submit_order(order)
+
+    # 3. SECOND: PostgreSQL Atomic Reservation and Balanced Settlement
+    fill_payload = {
+        "fill_id": fill.fill_id,
+        "order_id": fill.order_id,
+        "quantity": fill.quantity,
+        "price": str(fill.price),
+        "fee": str(fill.fee),
+        "fee_breakdown": fill.fee_breakdown,
+    }
+
+    try:
+        with active_pg.get_connection_context() as conn:
+            if hasattr(conn, "transaction"):
+                with conn.transaction():
+                    active_pg.submit_order_intent(conn, order)
+                    settlement_res = active_pg.process_fill(conn, fill_payload)
+            else:
+                active_pg.submit_order_intent(conn, order)
+                settlement_res = active_pg.process_fill(conn, fill_payload)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Settlement failed: {e}")
+
+    # 4. Mark-to-market price update
+    active_pg.update_stock_price(clean_sym, fill.price)
+
+    # 5. Fetch updated portfolio & fee details
+    pm = PortfolioManager(pg=active_pg)
+    wallet_summary = pm.get_portfolio_summary(1)
+
+    fb_dict = {}
+    if fill.fee_breakdown:
+        fb = fill.fee_breakdown
+        fb_dict = {
+            "brokerage": str(fb.brokerage),
+            "stt": str(fb.stt),
+            "exchange_charges": str(fb.exchange_charges),
+            "gst": str(fb.gst),
+            "stamp_duty": str(fb.stamp_duty),
+            "total_fee": str(fb.total_fee),
+        }
+
+    return {
+        "status": "SUCCESS",
+        "settlement_result": settlement_res,
+        "order": {
+            "order_id": order.order_id,
+            "symbol": clean_sym,
+            "side": side_str,
+            "quantity": qty,
+            "price": str(trade_price),
+        },
+        "fill": {
+            "fill_id": fill.fill_id,
+            "quantity": fill.quantity,
+            "executed_price": str(fill.price),
+            "total_fee": str(fill.fee),
+            "fee_breakdown": fb_dict,
+        },
+        "provenance": {
+            "decision_id": decision_id,
+            "event_id": decision.trigger_tick["event_id"],
+            "cross_store_write_order": "Mongo Decision -> Postgres Settlement",
+        },
+        "wallet": wallet_summary["portfolio"],
+        "message": f"Successfully executed virtual {side_str} for {qty} {clean_sym} at ₹{fill.price:.2f} via {req.broker.title()}Broker.",
+    }
+
+
 @app.post("/api/strategy/validate")
 def validate_custom_strategy(req: ValidateStrategyRequest) -> dict[str, Any]:
     """
@@ -544,9 +723,9 @@ with pg.get_connection_context() as conn:
         "engine_rollback_verified": is_safe,
         "elapsed_seconds": round(elapsed, 3),
         "explanation": (
-            "The child OS process was forcefully terminated mid-transaction. "
-            "PostgreSQL's lock manager and WAL transaction rollback automatically aborted "
-            "the aborted transaction. Zero partial state or orphaned orders leaked."
+            "The child process is forcibly terminated mid-transaction. "
+            "PostgreSQL discards uncommitted work when the session dies. "
+            "Zero partial state or orphaned orders leaked."
         ),
     }
 

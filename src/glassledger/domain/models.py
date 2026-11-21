@@ -39,6 +39,11 @@ class JournalAccount(StrEnum):
     CASH = "CASH"
     SECURITIES_AT_COST = "SECURITIES_AT_COST"
     FEE_EXPENSE = "FEE_EXPENSE"
+    BROKERAGE_EXPENSE = "BROKERAGE_EXPENSE"
+    STT_EXPENSE = "STT_EXPENSE"
+    EXCHANGE_FEE_EXPENSE = "EXCHANGE_FEE_EXPENSE"
+    GST_EXPENSE = "GST_EXPENSE"
+    STAMP_DUTY_EXPENSE = "STAMP_DUTY_EXPENSE"
 
 
 
@@ -113,12 +118,29 @@ class OrderIntent(BaseDomainModel):
         return Decimal(str(v))
 
 
+class FeeBreakdown(BaseDomainModel):
+    brokerage: Decimal = Decimal("0.0000")
+    stt: Decimal = Decimal("0.0000")
+    exchange_charges: Decimal = Decimal("0.0000")
+    gst: Decimal = Decimal("0.0000")
+    stamp_duty: Decimal = Decimal("0.0000")
+    total_fee: Decimal = Decimal("0.0000")
+
+    @field_validator("brokerage", "stt", "exchange_charges", "gst", "stamp_duty", "total_fee", mode="before")
+    @classmethod
+    def validate_monetary(cls, v: Any) -> Decimal:
+        if isinstance(v, float):
+            raise TypeError("Float is forbidden; use Decimal or str")
+        return Decimal(str(v))
+
+
 class FillExecution(BaseDomainModel):
     fill_id: str
     order_id: str
     quantity: int
     price: Decimal
     fee: Decimal = Decimal("0.0000")
+    fee_breakdown: Optional[FeeBreakdown] = None
     executed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("price", "fee", mode="before")

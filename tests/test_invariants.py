@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 import pytest
 
+from glassledger.storage.postgres import PostgresStorage
 from glassledger.domain.invariants import (
     SolvencyViolationError,
     UnbalancedJournalError,
@@ -161,6 +162,10 @@ def test_concurrent_order_solvency_simulation():
     assert reserved_cash <= wallet_balance
 
 
+@pytest.mark.skipif(
+    PostgresStorage().is_sqlite_fallback,
+    reason="Requires live PostgreSQL daemon on port 5432 for SELECT ... FOR UPDATE row locks",
+)
 def test_real_postgresql_concurrent_for_update_solvency():
     """
     Gold-Standard DBMS Concurrency Verification:
