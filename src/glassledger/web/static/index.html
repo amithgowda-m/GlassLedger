@@ -327,8 +327,10 @@
     </div>
     <nav>
       <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="nav-btn" onclick="switchTab('wallet')">Virtual Wallet</button>
       <button class="nav-btn" onclick="switchTab('journal')">Ledger & Provenance (FR-8)</button>
       <button class="nav-btn" onclick="switchTab('differ')">Diff Engine (FR-9)</button>
+      <button class="nav-btn" onclick="switchTab('reconciler')">Reconciler (FR-12)</button>
       <button class="nav-btn" onclick="switchTab('marketdata')">Live Market Data</button>
       <button class="nav-btn" onclick="switchTab('studio')">Strategy Studio</button>
       <button class="nav-btn" onclick="switchTab('crashlab')">Crash Safety Lab (FR-10)</button>
@@ -389,6 +391,107 @@
             <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading inventory...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- TAB: VIRTUAL WALLET -->
+    <div id="tab-wallet" class="tab-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <div>
+          <h2 style="color:var(--text-main); font-size:1.4rem; font-weight:700;">💼 Virtual Investment Portfolio & Wallet</h2>
+          <p style="color:var(--text-muted); font-size:0.85rem;">Virtual Paper Trading • Zero Financial Risk • Real-Time Mark-To-Market Accounting</p>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+          <button class="btn btn-secondary" onclick="loadWallet()">↻ Refresh Portfolio</button>
+          <button class="btn" onclick="switchTab('marketdata')">⚡ Execute Trade</button>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Portfolio NAV (Per Unit)</div>
+          <div class="metric-value" style="color: var(--accent-cyan);" id="wNavPerUnit">₹10.0000</div>
+          <div class="metric-sub" id="wNoOfUnits">Total Units: 10,000.00</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Portfolio XIRR (Annualized)</div>
+          <div class="metric-value" style="color: var(--accent-green);" id="wXirr">+0.00%</div>
+          <div class="metric-sub" id="wXirrSub">Newton-Raphson Discounted Cash Flow</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Total Net Asset Value (NAV)</div>
+          <div class="metric-value" style="color: var(--accent-green);" id="wTotalNetAssets">₹100,000.00</div>
+          <div class="metric-sub" id="wTotalPnl">Total P&L: ₹0.00 (+0.00%)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Available Virtual Cash</div>
+          <div class="metric-value" style="color: var(--accent-amber);" id="wAvailableCash">₹100,000.00</div>
+          <div class="metric-sub" id="wReservedCash">Reserved: ₹0.00</div>
+        </div>
+      </div>
+
+      <!-- Holdings Panel -->
+      <div class="panel" style="margin-top:1.5rem;">
+        <div class="panel-header">
+          <div class="panel-title">📊 Virtual Portfolio Holdings (Mark to Market)</div>
+          <span class="badge badge-purple" id="wHoldingsBadge">0 Assets Held</span>
+        </div>
+        <table id="walletHoldingsTable">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>No. of Units (Shares)</th>
+              <th>Avg Buy Price</th>
+              <th>Current Price (NAV)</th>
+              <th>Invested Capital</th>
+              <th>Current Market Value</th>
+              <th>Unrealized P&L</th>
+              <th>Portfolio Weight</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No securities currently held. Execute a trade in Live Market Data!</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Portfolio Breakdown & XIRR Methodology -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1.5rem;">
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:1rem;">💰 Capital & Equity Breakdown</div>
+          <div style="font-family:var(--font-mono); font-size:0.875rem; line-height:2.2;">
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
+              <span style="color:var(--text-muted);">Initial Virtual Capital:</span>
+              <strong id="wInitialCapital">₹100,000.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
+              <span style="color:var(--text-muted);">Securities Cost Basis:</span>
+              <strong id="wInvestedCapital">₹0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
+              <span style="color:var(--text-muted);">Securities Market Valuation:</span>
+              <strong id="wSecuritiesValue" style="color:var(--accent-cyan);">₹0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
+              <span style="color:var(--text-muted);">Unrealized Gains / Losses:</span>
+              <strong id="wUnrealizedPnl">₹0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:0.3rem 0;">
+              <span style="color:var(--text-muted);">Total Portfolio Net Assets:</span>
+              <strong id="wSummaryNetAssets" style="color:var(--accent-green);">₹100,000.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:1rem;">📈 XIRR & Unit Accounting Methodology</div>
+          <p style="color:var(--text-muted); font-size:0.825rem; line-height:1.7;">
+            • <strong>NAV per Unit</strong>: Represents the true net equity value of each virtual portfolio unit. Formulated as $\text{Total Net Assets} / \text{Issued Units}$ ($10,000$ base units).<br><br>
+            • <strong>XIRR (Extended Internal Rate of Return)</strong>: Solves $\sum \frac{C_t}{(1 + r)^{\frac{d_t - d_0}{365}}} = 0$ for irregular virtual trade cash inflows and outflows using Newton-Raphson root finding.<br><br>
+            • <strong>Double-Entry Integrity</strong>: Every trade settled here enforces ACID constraints, solvency checks, and balanced debits == credits in the underlying financial ledger.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -455,6 +558,24 @@
       </div>
     </div>
 
+    <!-- TAB: RECONCILER (FR-12) -->
+    <div id="tab-reconciler" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🛡️ Cross-Store Consistency Auditor (FR-12)</div>
+          <button class="btn" onclick="loadReconciliation()">Run Consistency Audit</button>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.25rem;">
+          Audits the strict FR-12 write ordering (MongoDB decision written before PostgreSQL settlement). Flags harmless orphaned decisions and catches any missing provenance.
+        </p>
+        <div id="reconciliationResultsArea">
+          <div style="text-align:center; padding: 3rem; color:var(--text-muted);">
+            Click <strong>"Run Consistency Audit"</strong> to verify cross-store consistency across MongoDB decisions and PostgreSQL ledger.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 4: LIVE MARKET DATA -->
     <div id="tab-marketdata" class="tab-content">
       <div class="panel">
@@ -466,7 +587,7 @@
           </div>
         </div>
         <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.25rem;">
-          Queried directly via free Yahoo Finance v8 API. No broker account or paid subscription required. Perfect for live demonstrations.
+          Queried directly via free Yahoo Finance v8 API. Execute virtual trades directly on live quotes below to update your Virtual Wallet without real money.
         </p>
         <table id="marketDataTable">
           <thead>
@@ -478,13 +599,74 @@
               <th>24h Change</th>
               <th>Volume</th>
               <th>Feed Status</th>
+              <th>Execute Virtual Trade</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading quotes...</td></tr>
+            <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Loading quotes...</td></tr>
           </tbody>
         </table>
         <div id="ingestFeedback" style="margin-top:1rem;"></div>
+      </div>
+    </div>
+
+    <!-- Trade Execution Modal -->
+    <div id="tradeModal" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(5px); justify-content:center; align-items:center;">
+      <div class="panel" style="max-width:560px; width:92%; border-color:var(--accent-cyan); box-shadow:0 0 35px rgba(6,182,212,0.35);">
+        <div class="panel-header">
+          <div class="panel-title">⚡ Execute Virtual Trade (Paper Mode)</div>
+          <button class="btn btn-secondary" onclick="closeTradeModal()" style="padding:0.2rem 0.6rem;">✕</button>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">
+          Trades settle immediately with virtual currency. Full FR-12 write order and FR-13 statutory fee breakdown applied to your Virtual Wallet.
+        </p>
+        
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+          <button id="btnSideBuy" class="btn" style="flex:1; background:var(--accent-green);" onclick="selectTradeSide('BUY')">BUY</button>
+          <button id="btnSideSell" class="btn btn-secondary" style="flex:1;" onclick="selectTradeSide('SELL')">SELL</button>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Stock Symbol</label>
+          <input type="text" id="tradeSymbol" readonly style="font-weight:700; color:var(--accent-cyan);" />
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Quantity (Units / Shares)</label>
+            <input type="number" id="tradeQty" value="10" min="1" oninput="updateTradePreview()" />
+          </div>
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Market Price (₹)</label>
+            <input type="number" id="tradePrice" step="0.05" oninput="updateTradePreview()" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Broker Adapter (FR-13 Fee Schedule)</label>
+          <select id="tradeBroker" onchange="updateTradePreview()">
+            <option value="paper">PaperBroker (Configurable Statutory Fees)</option>
+            <option value="shoonya">Shoonya by Finvasia (₹0 Brokerage)</option>
+            <option value="dhan">DhanHQ (Zero Delivery Brokerage)</option>
+            <option value="kite">Zerodha Kite Connect (Standard Retail)</option>
+          </select>
+        </div>
+
+        <!-- Live Statutory Fee Breakdown Preview -->
+        <div style="background:rgba(0,0,0,0.35); border:1px solid var(--border-subtle); border-radius:8px; padding:0.85rem; margin-bottom:1rem; font-family:var(--font-mono); font-size:0.78rem;">
+          <div style="color:var(--text-muted); font-weight:600; margin-bottom:0.4rem;">FR-13 Multi-Line Regulatory Fee Preview:</div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Brokerage:</span><span id="prevBrk">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>STT (0.1%):</span><span id="prevStt">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Exchange Charges (0.00345%):</span><span id="prevExc">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>GST (18% on Brokerage+Exchange):</span><span id="prevGst">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Stamp Duty (0.015% BUY only):</span><span id="prevStm">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.08); margin-top:0.4rem; padding-top:0.4rem; font-weight:700;">
+            <span id="prevTotalLabel">Estimated Cash Required:</span><span id="prevTotal" style="color:var(--accent-green);">₹0.0000</span>
+          </div>
+        </div>
+
+        <button class="btn" style="width:100%;" onclick="submitVirtualTrade()">Place Virtual Trade</button>
+        <div id="tradeModalFeedback" style="margin-top:0.75rem;"></div>
       </div>
     </div>
 
@@ -613,11 +795,17 @@ class MomentumStrategy(BaseStrategy):
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabId).classList.add('active');
-      event.target.classList.add('active');
+      const tabEl = document.getElementById('tab-' + tabId);
+      if (tabEl) tabEl.classList.add('active');
+      const targetBtn = (typeof event !== 'undefined' && event && event.target && event.target.classList.contains('nav-btn')) 
+        ? event.target 
+        : document.querySelector(`.nav-btn[onclick*="${tabId}"]`);
+      if (targetBtn) targetBtn.classList.add('active');
 
       if (tabId === 'dashboard') loadOverview();
+      if (tabId === 'wallet') loadWallet();
       if (tabId === 'journal') loadJournal();
+      if (tabId === 'reconciler') loadReconciliation();
       if (tabId === 'marketdata') loadMarketData();
       if (tabId === 'databases') loadDatabases();
     }
@@ -847,7 +1035,7 @@ class MomentumStrategy(BaseStrategy):
 
     async function loadMarketData() {
       const tbody = document.querySelector('#marketDataTable tbody');
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Fetching live NSE quotes...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Fetching live NSE quotes...</td></tr>';
       try {
         const res = await fetch('/api/market-data/live');
         const data = await res.json();
@@ -864,11 +1052,14 @@ class MomentumStrategy(BaseStrategy):
               <td style="color:${color}; font-weight:600;">${q.change} (${q.change_pct})</td>
               <td>${q.volume.toLocaleString()}</td>
               <td><span class="badge badge-green">${q.status}</span></td>
+              <td>
+                <button class="btn btn-sm" style="padding:0.3rem 0.75rem; font-size:0.75rem; background:linear-gradient(135deg, #06b6d4, #3b82f6); color:#fff;" onclick="openTradeModal('${q.symbol}', '${q.price}')">⚡ Trade</button>
+              </td>
             </tr>
           `;
         });
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--accent-rose);">Failed to load live feed: ${err}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--accent-rose);">Failed to load live feed: ${err}</td></tr>`;
       }
     }
 
@@ -1061,8 +1252,251 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
+    // ==========================================
+    // VIRTUAL WALLET & PORTFOLIO (NAV, Units, XIRR)
+    // ==========================================
+    async function loadWallet() {
+      try {
+        const res = await fetch('/api/wallet/summary');
+        const data = await res.json();
+        const p = data.portfolio;
+
+        document.getElementById('wNavPerUnit').innerText = '₹' + p.nav_per_unit;
+        document.getElementById('wNoOfUnits').innerText = `Total Units: ${parseFloat(p.no_of_units).toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+        
+        const xirrEl = document.getElementById('wXirr');
+        const xirrVal = parseFloat(p.xirr_number || 0);
+        xirrEl.innerText = p.xirr;
+        xirrEl.style.color = xirrVal >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
+
+        document.getElementById('wTotalNetAssets').innerText = '₹' + parseFloat(p.total_net_assets).toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('wTotalPnl').innerText = `Total P&L: ₹${p.total_pnl} (${p.total_pnl_pct})`;
+        document.getElementById('wTotalPnl').style.color = parseFloat(p.total_pnl) >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
+
+        document.getElementById('wAvailableCash').innerText = '₹' + parseFloat(p.available_cash).toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('wReservedCash').innerText = `Reserved: ₹${p.reserved_cash}`;
+
+        document.getElementById('wInitialCapital').innerText = '₹' + parseFloat(p.initial_capital).toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('wInvestedCapital').innerText = '₹' + parseFloat(p.invested_capital).toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('wSecuritiesValue').innerText = '₹' + parseFloat(p.securities_market_value).toLocaleString('en-IN', {minimumFractionDigits: 2});
+        
+        const unEl = document.getElementById('wUnrealizedPnl');
+        unEl.innerText = '₹' + p.unrealized_pnl;
+        unEl.style.color = parseFloat(p.unrealized_pnl) >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
+        document.getElementById('wSummaryNetAssets').innerText = '₹' + parseFloat(p.total_net_assets).toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+        document.getElementById('wHoldingsBadge').innerText = `${data.holdings_count} Assets Held`;
+
+        const tbody = document.querySelector('#walletHoldingsTable tbody');
+        tbody.innerHTML = '';
+        if (!data.holdings || data.holdings.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:2rem;">No securities currently held. Execute a trade from the Live Market Data tab!</td></tr>';
+        } else {
+          data.holdings.forEach(h => {
+            const isGain = parseFloat(h.unrealized_pnl) >= 0;
+            const pnlColor = isGain ? 'var(--accent-green)' : 'var(--accent-rose)';
+            tbody.innerHTML += `
+              <tr>
+                <td><strong style="color:var(--accent-cyan);">${h.symbol}</strong></td>
+                <td style="font-weight:700;">${h.units.toLocaleString()}</td>
+                <td>₹${h.avg_buy_price}</td>
+                <td style="color:var(--accent-cyan); font-weight:600;">₹${h.current_price}</td>
+                <td>₹${h.invested_value}</td>
+                <td style="font-weight:700;">₹${h.current_value}</td>
+                <td style="color:${pnlColor}; font-weight:600;">${h.unrealized_pnl} (${h.unrealized_pnl_pct})</td>
+                <td><span class="badge badge-purple">${h.weight_pct}</span></td>
+                <td>
+                  <button class="btn btn-sm" style="padding:0.25rem 0.6rem; font-size:0.75rem;" onclick="openTradeModal('${h.symbol}', '${h.current_price}')">Trade</button>
+                </td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load virtual wallet", err);
+      }
+    }
+
+    // ==========================================
+    // TRADE EXECUTION MODAL & FR-13 PREVIEW
+    // ==========================================
+    let tradeSide = 'BUY';
+
+    function openTradeModal(symbol, price) {
+      document.getElementById('tradeSymbol').value = symbol.replace('.NS', '').replace('.BO', '');
+      document.getElementById('tradePrice').value = price || '100.00';
+      document.getElementById('tradeQty').value = 10;
+      document.getElementById('tradeModalFeedback').innerHTML = '';
+      selectTradeSide('BUY');
+      document.getElementById('tradeModal').style.display = 'flex';
+      updateTradePreview();
+    }
+
+    function closeTradeModal() {
+      document.getElementById('tradeModal').style.display = 'none';
+    }
+
+    function selectTradeSide(side) {
+      tradeSide = side;
+      const bBuy = document.getElementById('btnSideBuy');
+      const bSell = document.getElementById('btnSideSell');
+      if (side === 'BUY') {
+        bBuy.className = 'btn';
+        bBuy.style.background = 'var(--accent-green)';
+        bSell.className = 'btn btn-secondary';
+        bSell.style.background = '';
+        document.getElementById('prevTotalLabel').innerText = 'Estimated Cash Required (Debit):';
+      } else {
+        bSell.className = 'btn';
+        bSell.style.background = 'var(--accent-rose)';
+        bBuy.className = 'btn btn-secondary';
+        bBuy.style.background = '';
+        document.getElementById('prevTotalLabel').innerText = 'Estimated Cash Proceeds (Credit):';
+      }
+      updateTradePreview();
+    }
+
+    function updateTradePreview() {
+      const qty = parseInt(document.getElementById('tradeQty').value) || 0;
+      const price = parseFloat(document.getElementById('tradePrice').value) || 0;
+      const broker = document.getElementById('tradeBroker').value;
+      const turnover = qty * price;
+
+      let brkRate = 0.0003;
+      let brkCap = 20.0;
+      if (broker === 'shoonya' || broker === 'dhan') {
+        brkRate = 0.0;
+        brkCap = 0.0;
+      }
+      const brk = Math.min(turnover * brkRate, brkCap);
+      const stt = turnover * 0.0010;
+      const exc = turnover * 0.0000345;
+      const gst = (brk + exc) * 0.18;
+      const stamp = (tradeSide === 'BUY') ? turnover * 0.00015 : 0.0;
+      const totalFee = brk + stt + exc + gst + stamp;
+
+      document.getElementById('prevBrk').innerText = '₹' + brk.toFixed(4);
+      document.getElementById('prevStt').innerText = '₹' + stt.toFixed(4);
+      document.getElementById('prevExc').innerText = '₹' + exc.toFixed(4);
+      document.getElementById('prevGst').innerText = '₹' + gst.toFixed(4);
+      document.getElementById('prevStm').innerText = '₹' + stamp.toFixed(4);
+
+      const netImpact = (tradeSide === 'BUY') ? (turnover + totalFee) : (turnover - totalFee);
+      const prevTotalEl = document.getElementById('prevTotal');
+      prevTotalEl.innerText = '₹' + netImpact.toFixed(4);
+      prevTotalEl.style.color = (tradeSide === 'BUY') ? 'var(--accent-green)' : 'var(--accent-cyan)';
+    }
+
+    async function submitVirtualTrade() {
+      const symbol = document.getElementById('tradeSymbol').value.trim();
+      const qty = parseInt(document.getElementById('tradeQty').value) || 0;
+      const price = parseFloat(document.getElementById('tradePrice').value) || 0;
+      const broker = document.getElementById('tradeBroker').value;
+      const fb = document.getElementById('tradeModalFeedback');
+
+      if (!symbol || qty <= 0 || price <= 0) {
+        fb.innerHTML = '<div style="color:var(--accent-rose);">Please provide valid quantity and price.</div>';
+        return;
+      }
+
+      fb.innerHTML = '<div style="color:var(--accent-cyan);">Executing trade via FR-12 write order & FR-13 statutory fee settlement...</div>';
+
+      try {
+        const res = await fetch('/api/trade/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol, side: tradeSide, quantity: qty, price: price.toString(), broker }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          fb.innerHTML = `
+            <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:0.85rem; border-radius:8px; font-size:0.825rem;">
+              <h4 style="color:var(--accent-green); margin-bottom:0.4rem;">✔ Trade Executed & Settled!</h4>
+              <div>Fill ID: <strong>${data.fill.fill_id}</strong> @ ₹${data.fill.executed_price}</div>
+              <div>Statutory Fees: <strong>₹${data.fill.total_fee}</strong> (Multi-line balanced journal posted)</div>
+              <div>Updated Portfolio Value: <strong>₹${data.wallet.total_net_assets}</strong> | NAV: <strong>₹${data.wallet.nav_per_unit}</strong></div>
+              <div style="margin-top:0.6rem; display:flex; gap:0.5rem;">
+                <button class="btn btn-sm" onclick="switchTab('wallet'); closeTradeModal();" style="padding:0.3rem 0.6rem; font-size:0.75rem;">View Virtual Wallet</button>
+                <button class="btn btn-sm btn-secondary" onclick="switchTab('journal'); closeTradeModal();" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Trace in Ledger</button>
+              </div>
+            </div>
+          `;
+          loadOverview();
+          loadWallet();
+        } else {
+          fb.innerHTML = `<div style="color:var(--accent-rose); background:rgba(244,63,94,0.1); padding:0.6rem; border-radius:6px;">Execution Failed: ${data.detail}</div>`;
+        }
+      } catch (err) {
+        fb.innerHTML = `<div style="color:var(--accent-rose);">Network error: ${err}</div>`;
+      }
+    }
+
+    // ==========================================
+    // FR-12 CROSS-STORE RECONCILER
+    // ==========================================
+    async function loadReconciliation() {
+      const area = document.getElementById('reconciliationResultsArea');
+      area.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--accent-cyan);">Auditing MongoDB decision envelopes against PostgreSQL ledger entries...</div>';
+
+      try {
+        const res = await fetch('/api/reconcile');
+        const data = await res.json();
+
+        let orphansHtml = '';
+        if (data.orphan_decisions && data.orphan_decisions.length > 0) {
+          orphansHtml += `
+            <div style="margin-top:1rem;">
+              <h5 style="color:var(--accent-amber); margin-bottom:0.4rem;">Harmless Orphan Decisions (Recorded in Mongo, but aborted before Postgres):</h5>
+              <table>
+                <thead><tr><th>Decision ID</th><th>Claimed Order ID</th><th>Signal</th><th>Classification</th></tr></thead>
+                <tbody>
+                  ${data.orphan_decisions.map(d => `<tr><td>${d.decision_id}</td><td>${d.order_id}</td><td>${d.signal}</td><td><span class="badge badge-amber">${d.status}</span></td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        const isGood = data.is_consistent;
+        area.innerHTML = `
+          <div style="background:${isGood ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)'}; border:1px solid ${isGood ? 'var(--accent-green)' : 'var(--accent-amber)'}; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="color:${isGood ? 'var(--accent-green)' : 'var(--accent-amber)'};">
+                ${isGood ? '✔ 100% CROSS-STORE CONSISTENCY VERIFIED' : '⚠ AUDIT REPORTED ORPHAN ENVELOPES'}
+              </h3>
+              <span class="badge ${isGood ? 'badge-green' : 'badge-amber'}">${isGood ? 'ALL INVARIANTS VALID' : 'AUDIT COMPLETE'}</span>
+            </div>
+            <p style="color:var(--text-main); margin-top:0.6rem; font-size:0.9rem;">${data.summary}</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem; margin-bottom:1.5rem;">
+            <div class="metric-card">
+              <div class="metric-title">Decisions Checked</div>
+              <div class="metric-value" style="color:var(--accent-purple);">${data.total_decisions_checked}</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Orders in Ledger</div>
+              <div class="metric-value" style="color:var(--accent-cyan);">${data.total_orders_in_ledger}</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Fills Settled</div>
+              <div class="metric-value" style="color:var(--accent-green);">${data.total_fills_in_ledger}</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Consistent Lineage Chains</div>
+              <div class="metric-value" style="color:var(--accent-green);">${data.consistent_chains_count}</div>
+            </div>
+          </div>
+          ${orphansHtml}
+        `;
+      } catch (err) {
+        area.innerHTML = `<div style="color:var(--accent-rose);">Audit failed: ${err}</div>`;
+      }
+    }
+
     // Initial load
     loadOverview();
+    loadWallet();
   </script>
 </body>
 </html>

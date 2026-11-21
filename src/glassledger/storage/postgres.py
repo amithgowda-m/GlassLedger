@@ -77,7 +77,38 @@ class PostgresStorage:
         conn.execute("PRAGMA foreign_keys = ON;")
         conn.execute("PRAGMA journal_mode = WAL;")
         conn.execute("PRAGMA synchronous = NORMAL;")
+        self._ensure_sqlite_journal_schema(conn)
         return conn
+
+    def _ensure_sqlite_journal_schema(self, conn: sqlite3.Connection) -> None:
+        """Migrates SQLite journal_entries table check constraints if needed."""
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='journal_entries'")
+            row = cur.fetchone()
+            if row and row[0] and "BROKERAGE_EXPENSE" not in row[0]:
+                conn.execute("PRAGMA foreign_keys = OFF;")
+                conn.execute("ALTER TABLE journal_entries RENAME TO _journal_entries_old;")
+                conn.execute(
+                    """
+                    CREATE TABLE journal_entries (
+                        entry_id TEXT PRIMARY KEY,
+                        fill_id TEXT NOT NULL REFERENCES fills(fill_id),
+                        ledger_account TEXT NOT NULL CHECK (ledger_account IN ('CASH', 'SECURITIES_AT_COST', 'FEE_EXPENSE', 'BROKERAGE_EXPENSE', 'STT_EXPENSE', 'EXCHANGE_FEE_EXPENSE', 'GST_EXPENSE', 'STAMP_DUTY_EXPENSE')),
+                        debit NUMERIC(18, 4) NOT NULL DEFAULT 0.0000 CHECK (debit >= 0),
+                        credit NUMERIC(18, 4) NOT NULL DEFAULT 0.0000 CHECK (credit >= 0),
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0))
+                    );
+                    """
+                )
+                conn.execute("INSERT OR IGNORE INTO journal_entries SELECT * FROM _journal_entries_old;")
+                conn.execute("DROP TABLE _journal_entries_old;")
+                conn.execute("PRAGMA foreign_keys = ON;")
+                conn.commit()
+            cur.close()
+        except Exception:
+            pass
 
 
     def run_migrations(self, migration_sql_path: str) -> None:
@@ -167,7 +198,7 @@ class PostgresStorage:
                     CREATE TABLE IF NOT EXISTS journal_entries (
                         entry_id TEXT PRIMARY KEY,
                         fill_id TEXT NOT NULL REFERENCES fills(fill_id),
-                        ledger_account TEXT NOT NULL CHECK (ledger_account IN ('CASH', 'SECURITIES_AT_COST', 'FEE_EXPENSE')),
+                        ledger_account TEXT NOT NULL CHECK (ledger_account IN ('CASH', 'SECURITIES_AT_COST', 'FEE_EXPENSE', 'BROKERAGE_EXPENSE', 'STT_EXPENSE', 'EXCHANGE_FEE_EXPENSE', 'GST_EXPENSE', 'STAMP_DUTY_EXPENSE')),
                         debit NUMERIC(18, 4) NOT NULL DEFAULT 0.0000 CHECK (debit >= 0),
                         credit NUMERIC(18, 4) NOT NULL DEFAULT 0.0000 CHECK (credit >= 0),
                         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -289,6 +320,26 @@ class PostgresStorage:
             side_val = order.side.value if hasattr(order.side, "value") else str(order.side)
             status_val = order.status.value if hasattr(order.status, "value") else str(order.status)
 
+            # Ensure stock exists in reference table
+            if not is_sqlite:
+                cur.execute(
+                    """
+                    INSERT INTO stocks (symbol, company_name, sector, current_price)
+                    VALUES (%s, %s, 'Equities', %s)
+                    ON CONFLICT (symbol) DO UPDATE SET current_price = EXCLUDED.current_price
+                    """,
+                    (order.symbol, order.symbol, order.price),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO stocks (symbol, company_name, sector, current_price)
+                    VALUES (?, ?, 'Equities', ?)
+                    ON CONFLICT (symbol) DO UPDATE SET current_price = excluded.current_price
+                    """,
+                    (order.symbol, order.symbol, str(order.price)),
+                )
+
             # Insert order record
             if not is_sqlite:
                 cur.execute(
@@ -336,6 +387,47 @@ class PostgresStorage:
 
 
 
+    def _generate_fee_postings(
+        self, fill_id: str, fee: Decimal, breakdown: Optional[dict[str, Any]]
+    ) -> list[JournalPosting]:
+        """
+        FR-13: Generates individual double-entry journal postings for each charge category.
+        Brokerage, STT, Exchange Turnover charges, GST, and Stamp Duty.
+        """
+        postings: list[JournalPosting] = []
+        if breakdown and isinstance(breakdown, dict):
+            mapping = [
+                ("brokerage", "brk", JournalAccount.BROKERAGE_EXPENSE),
+                ("stt", "stt", JournalAccount.STT_EXPENSE),
+                ("exchange_charges", "exc", JournalAccount.EXCHANGE_FEE_EXPENSE),
+                ("gst", "gst", JournalAccount.GST_EXPENSE),
+                ("stamp_duty", "stm", JournalAccount.STAMP_DUTY_EXPENSE),
+            ]
+            for key, code, acct in mapping:
+                amt = Decimal(str(breakdown.get(key, "0.0000")))
+                if amt > Decimal("0.0000"):
+                    postings.append(
+                        JournalPosting(
+                            entry_id=f"j_{code}_{fill_id}",
+                            fill_id=fill_id,
+                            ledger_account=acct,
+                            debit=amt,
+                            credit=Decimal("0.0000"),
+                        )
+                    )
+
+        if not postings and fee > Decimal("0.0000"):
+            postings.append(
+                JournalPosting(
+                    entry_id=f"j_fee_{fill_id}",
+                    fill_id=fill_id,
+                    ledger_account=JournalAccount.FEE_EXPENSE,
+                    debit=fee,
+                    credit=Decimal("0.0000"),
+                )
+            )
+        return postings
+
     def process_fill(self, conn: Any, fill_data: dict[str, Any]) -> str:
         """
         Applies an execution fill atomically and idempotently.
@@ -353,6 +445,12 @@ class PostgresStorage:
         fee = Decimal(str(fill_data.get("fee", "0.0000")))
         cost_of_shares = qty * price
         total_cost = cost_of_shares + fee
+
+        fee_breakdown = fill_data.get("fee_breakdown")
+        if hasattr(fee_breakdown, "model_dump"):
+            fee_breakdown = fee_breakdown.model_dump()
+        elif hasattr(fee_breakdown, "dict"):
+            fee_breakdown = fee_breakdown.dict()
 
         cur = conn.cursor()
         try:
@@ -513,7 +611,8 @@ class PostgresStorage:
                         (fill_id, order_id, qty, str(price), str(fee)),
                     )
 
-                # Balanced Double-Entry Postings (Debits == Credits)
+                # Balanced Double-Entry Postings (Debits == Credits) (FR-4 & FR-13)
+                fee_postings = self._generate_fee_postings(fill_id, fee, fee_breakdown)
                 postings = [
                     JournalPosting(
                         entry_id=f"j_sec_{fill_id}",
@@ -522,13 +621,7 @@ class PostgresStorage:
                         debit=cost_of_shares,
                         credit=Decimal("0.0000"),
                     ),
-                    JournalPosting(
-                        entry_id=f"j_fee_{fill_id}",
-                        fill_id=fill_id,
-                        ledger_account=JournalAccount.FEE_EXPENSE,
-                        debit=fee,
-                        credit=Decimal("0.0000"),
-                    ),
+                    *fee_postings,
                     JournalPosting(
                         entry_id=f"j_csh_{fill_id}",
                         fill_id=fill_id,
@@ -540,13 +633,14 @@ class PostgresStorage:
                 assert_balanced_journal(postings)
 
                 for p in postings:
+                    account_val = p.ledger_account.value if hasattr(p.ledger_account, "value") else str(p.ledger_account)
                     if not is_sqlite:
                         cur.execute(
                             """
                             INSERT INTO journal_entries (entry_id, fill_id, ledger_account, debit, credit, created_at)
                             VALUES (%s, %s, %s, %s, %s, %s)
                             """,
-                            (p.entry_id, p.fill_id, p.ledger_account, p.debit, p.credit, p.created_at),
+                            (p.entry_id, p.fill_id, account_val, p.debit, p.credit, p.created_at),
                         )
                     else:
                         cur.execute(
@@ -554,7 +648,7 @@ class PostgresStorage:
                             INSERT INTO journal_entries (entry_id, fill_id, ledger_account, debit, credit, created_at)
                             VALUES (?, ?, ?, ?, ?, ?)
                             """,
-                            (p.entry_id, p.fill_id, str(p.ledger_account), str(p.debit), str(p.credit), p.created_at.isoformat()),
+                            (p.entry_id, p.fill_id, account_val, str(p.debit), str(p.credit), p.created_at.isoformat()),
                         )
 
             elif side == "SELL":
@@ -622,6 +716,7 @@ class PostgresStorage:
                         (fill_id, order_id, qty, str(price), str(fee)),
                     )
 
+                fee_postings = self._generate_fee_postings(fill_id, fee, fee_breakdown)
                 postings = [
                     JournalPosting(
                         entry_id=f"j_csh_{fill_id}",
@@ -630,13 +725,7 @@ class PostgresStorage:
                         debit=net_proceeds,
                         credit=Decimal("0.0000"),
                     ),
-                    JournalPosting(
-                        entry_id=f"j_fee_{fill_id}",
-                        fill_id=fill_id,
-                        ledger_account=JournalAccount.FEE_EXPENSE,
-                        debit=fee,
-                        credit=Decimal("0.0000"),
-                    ),
+                    *fee_postings,
                     JournalPosting(
                         entry_id=f"j_sec_{fill_id}",
                         fill_id=fill_id,
@@ -690,21 +779,22 @@ class PostgresStorage:
                 def __init__(self, path):
                     self.path = path
                     self.conn = None
-                def __enter__(self):
-                    self.conn = sqlite3.connect(str(self.path), timeout=30.0)
-                    self.conn.row_factory = sqlite3.Row
-                    self.conn.execute("PRAGMA foreign_keys = ON;")
-                    self.conn.execute("PRAGMA journal_mode = WAL;")
-                    self.conn.execute("PRAGMA synchronous = NORMAL;")
-                    return self.conn
+                def __enter__(self_ctx):
+                    self_ctx.conn = sqlite3.connect(str(self_ctx.path), timeout=30.0)
+                    self_ctx.conn.row_factory = sqlite3.Row
+                    self_ctx.conn.execute("PRAGMA foreign_keys = ON;")
+                    self_ctx.conn.execute("PRAGMA journal_mode = WAL;")
+                    self_ctx.conn.execute("PRAGMA synchronous = NORMAL;")
+                    self._ensure_sqlite_journal_schema(self_ctx.conn)
+                    return self_ctx.conn
 
-                def __exit__(self, exc_type, exc_val, exc_tb):
-                    if self.conn:
+                def __exit__(self_ctx, exc_type, exc_val, exc_tb):
+                    if self_ctx.conn:
                         if exc_type is None:
-                            self.conn.commit()
+                            self_ctx.conn.commit()
                         else:
-                            self.conn.rollback()
-                        self.conn.close()
+                            self_ctx.conn.rollback()
+                        self_ctx.conn.close()
             return SQLiteContext(self._sqlite_path)
 
     def get_investor_account(self, investor_id: int = 1) -> dict[str, Any]:
@@ -820,5 +910,34 @@ class PostgresStorage:
                 "total_debit": d,
                 "total_credit": c,
             }
+
+    def update_stock_price(self, symbol: str, price: Decimal) -> None:
+        """Updates the latest market price of a stock for accurate mark-to-market valuation."""
+        self.open()
+        if not self.is_sqlite_fallback:
+            assert self.pool is not None
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO stocks (symbol, company_name, sector, current_price)
+                        VALUES (%s, %s, 'Equities', %s)
+                        ON CONFLICT (symbol) DO UPDATE SET current_price = EXCLUDED.current_price
+                        """,
+                        (symbol, symbol, price),
+                    )
+                conn.commit()
+        else:
+            conn = self.get_sqlite_conn()
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO stocks (symbol, company_name, sector, current_price)
+                    VALUES (?, ?, 'Equities', ?)
+                    ON CONFLICT (symbol) DO UPDATE SET current_price = excluded.current_price
+                    """,
+                    (symbol, symbol, str(price)),
+                )
+            conn.close()
 
 

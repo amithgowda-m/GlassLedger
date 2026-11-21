@@ -8,6 +8,7 @@ from glassledger.domain.models import (
     OrderStatus,
     OrderIntent,
     FillExecution,
+    FeeBreakdown,
     JournalAccount,
     JournalPosting,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "OrderStatus",
     "OrderIntent",
     "FillExecution",
+    "FeeBreakdown",
     "JournalAccount",
     "JournalPosting",
     "assert_account_solvency",

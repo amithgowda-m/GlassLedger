@@ -20,6 +20,7 @@ from rich.table import Table
 from glassledger.config import settings
 from glassledger.diagnostics.differ import Differ
 from glassledger.diagnostics.tracer import Tracer
+from glassledger.diagnostics.reconciler import CrossStoreReconciler
 from glassledger.domain.models import StrategyConfig, StrategyType
 from glassledger.engine.broker import get_broker
 from glassledger.engine.runner import Runner
@@ -267,6 +268,18 @@ def trace(
     tracer = Tracer()
     result = tracer.trace(journal_entry_id)
     tracer.render_tree(result, console=console)
+
+
+@app.command("reconcile")
+def reconcile(
+    run_id: Optional[str] = typer.Option(None, "--run-id", "-r", help="Optional run identifier filter (e.g. run_001)"),
+) -> None:
+    """Audits cross-store consistency between MongoDB decisions and PostgreSQL ledger (FR-12)."""
+    filter_str = f" for run '{run_id}'" if run_id else ""
+    console.print(f"[cyan]Auditing cross-store consistency{filter_str}...[/cyan]")
+    reconciler = CrossStoreReconciler()
+    report = reconciler.reconcile(run_id=run_id)
+    reconciler.render_reconciliation(report, console=console)
 
 
 @app.command("ui")

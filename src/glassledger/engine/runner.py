@@ -35,11 +35,13 @@ class Runner:
         strategy_id: str,
         run_id: str,
         drop_seq: Optional[int] = None,
+        fail_before_settlement_seq: Optional[int] = None,
         show_progress: bool = True,
     ) -> dict[str, Any]:
         """
         Executes a deterministic trading run over the dataset.
-        Records every evaluation step in MongoDB and settles fills in PostgreSQL.
+        Enforces FR-12 Write Ordering: Mongo decision envelope logged FIRST,
+        followed by PostgreSQL atomic order reservation and settlement.
         """
         # Fetch strategy configuration from Mongo or register default
         strat_doc = self.mongo.get_strategy(strategy_id)
@@ -81,8 +83,9 @@ class Runner:
 
                 decision_id = f"dec_{run_id}_{seq:06d}"
                 order_id: Optional[str] = None
+                side: Optional[OrderSide] = None
+                order: Optional[OrderIntent] = None
 
-                # 2. Check for actionable signal
                 if signal in (Signal.BUY, Signal.SELL):
                     order_id = f"ord_{run_id}_{seq:06d}"
                     side = OrderSide.BUY if signal == Signal.BUY else OrderSide.SELL
@@ -108,44 +111,7 @@ class Runner:
                         decision_ref=decision_id,
                     )
 
-                    # Atomic fund reservation & settlement
-                    with self.pg.get_connection_context() as conn:
-                        if hasattr(conn, "transaction"):
-                            with conn.transaction():
-                                self.pg.submit_order_intent(conn, order)
-                                orders_placed += 1
-
-                                # Broker execution
-                                fill = self.broker.submit_order(order)
-
-                                # Atomic ledger settlement & journal postings
-                                fill_payload = {
-                                    "fill_id": fill.fill_id,
-                                    "order_id": fill.order_id,
-                                    "quantity": fill.quantity,
-                                    "price": str(fill.price),
-                                    "fee": str(fill.fee),
-                                }
-                                res = self.pg.process_fill(conn, fill_payload)
-                                if res == "APPLIED":
-                                    fills_settled += 1
-                        else:
-                            self.pg.submit_order_intent(conn, order)
-                            orders_placed += 1
-                            fill = self.broker.submit_order(order)
-                            fill_payload = {
-                                "fill_id": fill.fill_id,
-                                "order_id": fill.order_id,
-                                "quantity": fill.quantity,
-                                "price": str(fill.price),
-                                "fee": str(fill.fee),
-                            }
-                            res = self.pg.process_fill(conn, fill_payload)
-                            if res == "APPLIED":
-                                fills_settled += 1
-
-
-                # 3. Log decision envelope to MongoDB
+                # 2. FR-12 REQUIRED WRITE ORDERING: Write decision to Mongo FIRST
                 decision = DecisionSnapshot(
                     decision_id=decision_id,
                     strategy_id=f"{strategy_id}@{run_id}",
@@ -163,6 +129,51 @@ class Runner:
                 )
                 self.mongo.log_decision(decision)
                 decisions_logged += 1
+
+                # FR-12 Failure injection hook between writes
+                if fail_before_settlement_seq is not None and seq == fail_before_settlement_seq:
+                    raise RuntimeError(
+                        f"INJECTED_FAILURE_AFTER_MONGO_BEFORE_POSTGRES: Simulated crash at seq {seq}"
+                    )
+
+                # 3. SECOND: Atomic fund reservation & PostgreSQL settlement
+                if order is not None:
+                    with self.pg.get_connection_context() as conn:
+                        if hasattr(conn, "transaction"):
+                            with conn.transaction():
+                                self.pg.submit_order_intent(conn, order)
+                                orders_placed += 1
+
+                                # Broker execution with realistic fee model
+                                fill = self.broker.submit_order(order)
+
+                                # Atomic ledger settlement & balanced journal postings
+                                fill_payload = {
+                                    "fill_id": fill.fill_id,
+                                    "order_id": fill.order_id,
+                                    "quantity": fill.quantity,
+                                    "price": str(fill.price),
+                                    "fee": str(fill.fee),
+                                    "fee_breakdown": fill.fee_breakdown,
+                                }
+                                res = self.pg.process_fill(conn, fill_payload)
+                                if res == "APPLIED":
+                                    fills_settled += 1
+                        else:
+                            self.pg.submit_order_intent(conn, order)
+                            orders_placed += 1
+                            fill = self.broker.submit_order(order)
+                            fill_payload = {
+                                "fill_id": fill.fill_id,
+                                "order_id": fill.order_id,
+                                "quantity": fill.quantity,
+                                "price": str(fill.price),
+                                "fee": str(fill.fee),
+                                "fee_breakdown": fill.fee_breakdown,
+                            }
+                            res = self.pg.process_fill(conn, fill_payload)
+                            if res == "APPLIED":
+                                fills_settled += 1
 
                 progress.update(task, advance=1)
 

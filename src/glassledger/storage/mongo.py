@@ -108,7 +108,7 @@ class FallbackCollection:
             rows.append((doc_id, pickle.dumps(d)))
         with self._get_conn() as conn:
             conn.executemany(
-                f"INSERT INTO coll_{self.name} (doc_id, doc) VALUES (?, ?)", rows
+                f"INSERT OR REPLACE INTO coll_{self.name} (doc_id, doc) VALUES (?, ?)", rows
             )
         return type("InsertManyResult", (), {"inserted_ids": [r[0] for r in rows]})()
 
