@@ -116,8 +116,10 @@ def test_multi_line_journal_postings_in_ledger():
     and total debits strictly equal total credits.
     """
     pg = PostgresStorage()
-    fill_id = "fill_fee_multi_line_001"
-    order_id = "ord_fee_multi_line_001"
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    fill_id = f"fill_fee_multi_line_{uid}"
+    order_id = f"ord_fee_multi_line_{uid}"
 
     # Setup initial investor balance and order
     order = OrderIntent(

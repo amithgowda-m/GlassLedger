@@ -71,8 +71,8 @@ def db_migrate() -> None:
         mode_str = " [yellow](SQLite fallback)[/yellow]" if mongo.is_sqlite_fallback else ""
         console.print(f"[green][OK] MongoDB:{mode_str}[/green] Time-series collection 'price_history' and $jsonSchema validators configured.")
 
-        # If price_history is empty, auto-seed default baseline ticks & strategies for immediate out-of-the-box readiness
-        if mongo.db.price_history.count_documents({}) == 0:
+        # If baseline_ticks dataset is empty, auto-seed default baseline ticks & strategies for immediate out-of-the-box readiness
+        if len(mongo.get_ticks("baseline_ticks")) == 0:
             synth_path = Path("data/synthetic_ticks.csv")
             if synth_path.exists():
                 ticks = Sequencer.load_csv(str(synth_path))
@@ -194,10 +194,10 @@ def run(
         table.add_row("Decisions Logged (MongoDB)", str(summary["decisions_logged"]))
         table.add_row("Orders Placed (PostgreSQL)", str(summary["orders_placed"]))
         table.add_row("Fills Settled (PostgreSQL)", str(summary["fills_settled"]))
-        table.add_row("Final Wallet Balance", f"${summary['wallet_balance']}")
-        table.add_row("Reserved Cash", f"${summary['reserved_cash']}")
-        table.add_row("Double-Entry Total Debit", f"${summary['total_debit']}")
-        table.add_row("Double-Entry Total Credit", f"${summary['total_credit']}")
+        table.add_row("Final Wallet Balance", f"₹{summary['wallet_balance']}")
+        table.add_row("Reserved Cash", f"₹{summary['reserved_cash']}")
+        table.add_row("Double-Entry Total Debit", f"₹{summary['total_debit']}")
+        table.add_row("Double-Entry Total Credit", f"₹{summary['total_credit']}")
 
         console.print(table)
         console.print(f"[bold green][OK] Execution completed successfully.[/bold green]")
@@ -300,10 +300,14 @@ def ui(
             f"API Swagger:   [cyan]{url}/docs[/cyan]\n\n"
             f"[bold]Active Capabilities in Dashboard:[/bold]\n"
             f"  [cyan]1. Solvency Dashboard:[/cyan] Live wallet balance, reservations, and balanced journal check\n"
-            f"  [cyan]2. Trade Lineage Tracer (FR-8):[/cyan] Click any ledger posting to generate causal trees\n"
-            f"  [cyan]3. Diff Engine (FR-9):[/cyan] 4-way classification (INPUT, OBSERVATION, DECISION, SETTLEMENT)\n"
-            f"  [cyan]4. Database Inspector:[/cyan] Live view into PostgreSQL & MongoDB\n"
-            f"  [cyan]5. Simulation Runner:[/cyan] Execute baseline and dropped-tick runs with 1 click",
+            f"  [cyan]2. Virtual Investment Portfolio & Wallet:[/cyan] NAV/Unit, Units Issued, XIRR (Newton-Raphson), Mark-to-Market Holdings\n"
+            f"  [cyan]3. Trade Lineage Tracer (FR-8):[/cyan] Click any ledger posting to generate causal trees\n"
+            f"  [cyan]4. Diff Engine (FR-9):[/cyan] 4-way classification (INPUT, OBSERVATION, DECISION, SETTLEMENT)\n"
+            f"  [cyan]5. Cross-Store Reconciler (FR-12):[/cyan] Audit MongoDB decisions against PostgreSQL ledger with orphan classification\n"
+            f"  [cyan]6. Statutory Fee Engine (FR-13):[/cyan] Brokerage, STT, Exchange Charges, GST, Stamp Duty multi-line settlement\n"
+            f"  [cyan]7. Live Market Data & Virtual Trading:[/cyan] Real-time NSE quotes with 1-click virtual order execution\n"
+            f"  [cyan]8. Database Inspector:[/cyan] Live view into PostgreSQL & MongoDB\n"
+            f"  [cyan]9. Simulation Runner:[/cyan] Execute baseline and dropped-tick runs with 1 click",
             title="GlassLedger Visual UI",
             border_style="green",
         )

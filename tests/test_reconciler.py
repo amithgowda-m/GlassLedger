@@ -157,15 +157,18 @@ def test_reconciler_detects_orphan_order_in_postgres():
     pg = PostgresStorage()
     mongo = MongoStorage()
 
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    ghost_order_id = f"ord_phantom_ghost_{uid}"
     orphan_order = OrderIntent(
-        order_id="ord_phantom_ghost_01",
+        order_id=ghost_order_id,
         investor_id=1,
         symbol="TCS",
         side=OrderSide.BUY,
         quantity=5,
         price=Decimal("3500.0000"),
         reserved_amount=Decimal("18000.0000"),
-        decision_ref="dec_non_existent_ghost_01",
+        decision_ref=f"dec_non_existent_ghost_{uid}",
     )
 
     with pg.get_connection_context() as conn:
@@ -177,4 +180,4 @@ def test_reconciler_detects_orphan_order_in_postgres():
     assert report["is_consistent"] is False
     assert report["orphan_orders_count"] >= 1
     orphan_order_ids = [o["order_id"] for o in report["orphan_orders"]]
-    assert "ord_phantom_ghost_01" in orphan_order_ids
+    assert ghost_order_id in orphan_order_ids

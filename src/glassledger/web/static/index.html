@@ -85,21 +85,25 @@
       font-weight: 600;
     }
 
+    /* Primary Navigation (5 Focused Tabs) */
     nav {
       display: flex;
-      gap: 0.35rem;
-      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
     }
     .nav-btn {
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-muted);
-      padding: 0.45rem 0.85rem;
+      padding: 0.55rem 1rem;
       border-radius: 8px;
       cursor: pointer;
-      font-weight: 500;
-      font-size: 0.825rem;
+      font-weight: 600;
+      font-size: 0.85rem;
       transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
     }
     .nav-btn:hover {
       color: var(--text-main);
@@ -110,6 +114,45 @@
       background: rgba(0, 240, 255, 0.12);
       border-color: rgba(0, 240, 255, 0.35);
     }
+
+    /* Secondary Sub-navigation for Simulations */
+    .subnav {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+      background: rgba(6, 9, 16, 0.8);
+      padding: 0.4rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+    }
+    .subnav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 0.45rem 1rem;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.825rem;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .subnav-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .subnav-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.15);
+      border-color: rgba(0, 240, 255, 0.3);
+      font-weight: 600;
+    }
+
+    .sim-subcontent { display: none; }
+    .sim-subcontent.active { display: block; animation: fadeIn 0.2s ease-in-out; }
 
     main {
       flex: 1;
@@ -130,15 +173,15 @@
     /* Cards & Grids */
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 1.25rem;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1.15rem;
+      margin-bottom: 1.75rem;
     }
     .metric-card {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: 12px;
-      padding: 1.25rem;
+      padding: 1.15rem;
       backdrop-filter: blur(14px);
       transition: all 0.2s;
     }
@@ -147,7 +190,7 @@
       transform: translateY(-2px);
     }
     .metric-title {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -155,14 +198,14 @@
       font-weight: 600;
     }
     .metric-value {
-      font-size: 1.7rem;
+      font-size: 1.55rem;
       font-weight: 700;
       font-family: var(--font-mono);
       letter-spacing: -0.02em;
     }
     .metric-sub {
       font-size: 0.75rem;
-      margin-top: 0.4rem;
+      margin-top: 0.35rem;
       color: var(--text-muted);
       font-family: var(--font-mono);
     }
@@ -173,7 +216,7 @@
       border: 1px solid var(--border-subtle);
       border-radius: 14px;
       padding: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
       backdrop-filter: blur(16px);
     }
     .panel-header {
@@ -181,6 +224,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
     }
     .panel-title {
       font-size: 1.1rem;
@@ -206,7 +251,7 @@
       letter-spacing: 0.05em;
     }
     td {
-      padding: 0.85rem 1rem;
+      padding: 0.8rem 1rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       font-family: var(--font-mono);
       font-size: 0.825rem;
@@ -230,10 +275,47 @@
     .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
     .badge-purple { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.35); }
 
-    /* Trace Tree Visualizer */
+    /* Account badge styling for Ledger */
+    .account-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      white-space: nowrap;
+    }
+    .pill-cash { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+    .pill-sec { background: rgba(0, 240, 255, 0.15); color: #38bdf8; border: 1px solid rgba(0, 240, 255, 0.35); }
+    .pill-fee { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.35); }
+    .pill-tax { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35); }
+
+    .id-badge {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      padding: 0.2rem 0.5rem;
+      border-radius: 5px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .id-badge:hover {
+      color: var(--accent-cyan);
+      border-color: rgba(0, 240, 255, 0.4);
+      background: rgba(0, 240, 255, 0.08);
+    }
+
+    /* Trace Visualizer */
     .trace-container {
       display: grid;
-      grid-template-columns: 1.1fr 1fr;
+      grid-template-columns: 1.15fr 0.85fr;
       gap: 1.5rem;
     }
     .tree-box {
@@ -248,11 +330,12 @@
       overflow-y: auto;
     }
     .tree-node {
-      padding: 0.65rem 0.85rem;
-      margin: 0.6rem 0;
+      padding: 0.75rem 0.95rem;
+      margin: 0.65rem 0;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.03);
       border-left: 3px solid var(--accent-cyan);
+      position: relative;
     }
     .tree-node.journal { border-left-color: var(--accent-amber); }
     .tree-node.fill { border-left-color: var(--accent-cyan); }
@@ -270,6 +353,9 @@
       cursor: pointer;
       font-size: 0.825rem;
       transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
     }
     .btn:hover {
       box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
@@ -313,6 +399,12 @@
       gap: 0.4rem;
       margin-bottom: 1rem;
     }
+
+    @media (max-width: 1024px) {
+      .trace-container { grid-template-columns: 1fr; }
+      header { padding: 0.75rem 1rem; }
+      main { padding: 1rem; }
+    }
   </style>
 </head>
 <body>
@@ -321,304 +413,182 @@
       <div class="brand-icon">G</div>
       <div>
         <div class="brand-title">GlassLedger</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted);">Deterministic Hybrid-Persistence Trading Engine (NSE / BSE)</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);">Institutional Double-Entry Settlement & Algorithmic Trading Platform</div>
       </div>
       <span class="brand-tag" id="headerDbMode">PostgreSQL 16.8 + MongoDB 8.2</span>
     </div>
+
+    <!-- Clean 5-Tab Navigation -->
     <nav>
-      <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="nav-btn" onclick="switchTab('wallet')">Virtual Wallet</button>
-      <button class="nav-btn" onclick="switchTab('journal')">Ledger & Provenance (FR-8)</button>
-      <button class="nav-btn" onclick="switchTab('differ')">Diff Engine (FR-9)</button>
-      <button class="nav-btn" onclick="switchTab('reconciler')">Reconciler (FR-12)</button>
-      <button class="nav-btn" onclick="switchTab('marketdata')">Live Market Data</button>
-      <button class="nav-btn" onclick="switchTab('studio')">Strategy Studio</button>
-      <button class="nav-btn" onclick="switchTab('crashlab')">Crash Safety Lab (FR-10)</button>
-      <button class="nav-btn" onclick="switchTab('databases')">Database Inspector</button>
-      <button class="nav-btn" onclick="switchTab('simulator')">Simulation Runner</button>
+      <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="nav-btn" onclick="switchTab('marketdata')">📡 Live Market Data</button>
+      <button class="nav-btn" onclick="switchTab('ledger')">📜 Ledger & Provenance</button>
+      <button class="nav-btn" onclick="switchTab('studio')">⚙️ Strategy Settings</button>
+      <button class="nav-btn" onclick="switchTab('simulations')">🧪 Simulations</button>
     </nav>
   </header>
 
   <main>
-    <!-- TAB 1: DASHBOARD -->
+    <!-- ================================================================= -->
+    <!-- TAB 1: UNIFIED DASHBOARD & PORTFOLIO                             -->
+    <!-- ================================================================= -->
     <div id="tab-dashboard" class="tab-content active">
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-title">Wallet Balance (INR)</div>
-          <div class="metric-value" style="color: var(--accent-green);" id="mWalletBalance">₹0.0000</div>
-          <div class="metric-sub" id="mReservedCash">Reserved: ₹0.0000</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Portfolio P&L (FR-11)</div>
-          <div class="metric-value" id="mUnrealizedPnl">₹0.0000</div>
-          <div class="metric-sub" id="mRealizedPnl">Realized: ₹0.0000</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Double-Entry Solvency</div>
-          <div class="metric-value" id="mSolvencyState" style="color: var(--accent-green);">BALANCED</div>
-          <div class="metric-sub" id="mJournalTotals">Debits == Credits</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Market Ticks (MongoDB)</div>
-          <div class="metric-value" id="mTotalTicks">0</div>
-          <div class="metric-sub">Time-series price history</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Decisions Logged</div>
-          <div class="metric-value" style="color: var(--accent-purple);" id="mTotalDecisions">0</div>
-          <div class="metric-sub" id="mOrderFillRatio">Orders: 0 | Fills: 0</div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">📈 Securities Inventory & P&L Valuation (NSE Equities)</div>
-          <button class="btn btn-secondary" onclick="loadOverview()">Refresh</button>
-        </div>
-        <table id="holdingsTable">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Quantity Owned</th>
-              <th>Reserved Qty</th>
-              <th>Weighted Avg Price</th>
-              <th>Current Market Price</th>
-              <th>Total Valuation</th>
-              <th>Unrealized P&L (FR-11)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading inventory...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TAB: VIRTUAL WALLET -->
-    <div id="tab-wallet" class="tab-content">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:0.75rem;">
         <div>
-          <h2 style="color:var(--text-main); font-size:1.4rem; font-weight:700;">💼 Virtual Investment Portfolio & Wallet</h2>
-          <p style="color:var(--text-muted); font-size:0.85rem;">Virtual Paper Trading • Zero Financial Risk • Real-Time Mark-To-Market Accounting</p>
+          <h2 style="color:var(--text-main); font-size:1.35rem; font-weight:700;">Executive Portfolio & Solvency Command Center</h2>
+          <p style="color:var(--text-muted); font-size:0.85rem;">Virtual Paper Portfolio • Instant Mark-to-Market • Real-Time Solvency Invariants</p>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button class="btn btn-secondary" onclick="loadWallet()">↻ Refresh Portfolio</button>
-          <button class="btn" onclick="switchTab('marketdata')">⚡ Execute Trade</button>
+          <button class="btn btn-secondary" onclick="loadOverview(); loadWallet();">↻ Refresh Data</button>
+          <button class="btn" onclick="switchTab('marketdata')">⚡ Place Virtual Trade</button>
         </div>
       </div>
 
+      <!-- Key Financial Metrics (6 Responsive Cards) -->
       <div class="metrics-grid">
         <div class="metric-card">
           <div class="metric-title">Portfolio NAV (Per Unit)</div>
           <div class="metric-value" style="color: var(--accent-cyan);" id="wNavPerUnit">₹10.0000</div>
           <div class="metric-sub" id="wNoOfUnits">Total Units: 10,000.00</div>
         </div>
+
         <div class="metric-card">
-          <div class="metric-title">Portfolio XIRR (Annualized)</div>
+          <div class="metric-title">Annualized Return (XIRR)</div>
           <div class="metric-value" style="color: var(--accent-green);" id="wXirr">+0.00%</div>
-          <div class="metric-sub" id="wXirrSub">Newton-Raphson Discounted Cash Flow</div>
+          <div class="metric-sub">Discounted Cash Flow IRR</div>
         </div>
+
         <div class="metric-card">
           <div class="metric-title">Total Net Asset Value (NAV)</div>
           <div class="metric-value" style="color: var(--accent-green);" id="wTotalNetAssets">₹100,000.00</div>
-          <div class="metric-sub" id="wTotalPnl">Total P&L: ₹0.00 (+0.00%)</div>
+          <div class="metric-sub" id="wTotalPnl">P&L: ₹0.00 (+0.00%)</div>
         </div>
+
         <div class="metric-card">
-          <div class="metric-title">Available Virtual Cash</div>
-          <div class="metric-value" style="color: var(--accent-amber);" id="wAvailableCash">₹100,000.00</div>
-          <div class="metric-sub" id="wReservedCash">Reserved: ₹0.00</div>
+          <div class="metric-title">Available Cash</div>
+          <div class="metric-value" style="color: var(--accent-amber);" id="mWalletBalance">₹100,000.00</div>
+          <div class="metric-sub" id="mReservedCash">Reserved: ₹0.0000</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-title">Ledger Solvency</div>
+          <div class="metric-value" id="mSolvencyState" style="color: var(--accent-green);">BALANCED</div>
+          <div class="metric-sub" id="mJournalTotals">Debits == Credits</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-title">Execution Telemetry</div>
+          <div class="metric-value" style="color: var(--accent-purple);" id="mTotalDecisions">0</div>
+          <div class="metric-sub" id="mOrderFillRatio">Orders: 0 | Fills: 0</div>
         </div>
       </div>
 
-      <!-- Holdings Panel -->
-      <div class="panel" style="margin-top:1.5rem;">
+      <!-- Mark-to-Market Holdings Panel -->
+      <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">📊 Virtual Portfolio Holdings (Mark to Market)</div>
-          <span class="badge badge-purple" id="wHoldingsBadge">0 Assets Held</span>
+          <div class="panel-title">
+            <span>📈 Securities Holdings (Mark-to-Market Valuation)</span>
+            <span class="badge badge-purple" id="wHoldingsBadge">0 Assets Held</span>
+          </div>
+          <span style="font-size:0.8rem; color:var(--text-muted);">Real-time pricing via NSE Live Quotes</span>
         </div>
         <table id="walletHoldingsTable">
           <thead>
             <tr>
               <th>Symbol</th>
-              <th>No. of Units (Shares)</th>
+              <th>Shares (Units)</th>
               <th>Avg Buy Price</th>
-              <th>Current Price (NAV)</th>
+              <th>Market Price</th>
               <th>Invested Capital</th>
-              <th>Current Market Value</th>
+              <th>Current Valuation</th>
               <th>Unrealized P&L</th>
-              <th>Portfolio Weight</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No securities currently held. Execute a trade in Live Market Data!</td></tr>
+            <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">No securities currently owned. Open <strong>Live Market Data</strong> to execute a paper trade.</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Portfolio Breakdown & XIRR Methodology -->
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1.5rem;">
-        <div class="panel">
-          <div class="panel-title" style="margin-bottom:1rem;">💰 Capital & Equity Breakdown</div>
-          <div style="font-family:var(--font-mono); font-size:0.875rem; line-height:2.2;">
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
-              <span style="color:var(--text-muted);">Initial Virtual Capital:</span>
-              <strong id="wInitialCapital">₹100,000.00</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
-              <span style="color:var(--text-muted);">Securities Cost Basis:</span>
-              <strong id="wInvestedCapital">₹0.00</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
-              <span style="color:var(--text-muted);">Securities Market Valuation:</span>
-              <strong id="wSecuritiesValue" style="color:var(--accent-cyan);">₹0.00</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:0.3rem 0;">
-              <span style="color:var(--text-muted);">Unrealized Gains / Losses:</span>
-              <strong id="wUnrealizedPnl">₹0.00</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; padding:0.3rem 0;">
-              <span style="color:var(--text-muted);">Total Portfolio Net Assets:</span>
-              <strong id="wSummaryNetAssets" style="color:var(--accent-green);">₹100,000.00</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title" style="margin-bottom:1rem;">📈 XIRR & Unit Accounting Methodology</div>
-          <p style="color:var(--text-muted); font-size:0.825rem; line-height:1.7;">
-            • <strong>NAV per Unit</strong>: Represents the true net equity value of each virtual portfolio unit. Formulated as $\text{Total Net Assets} / \text{Issued Units}$ ($10,000$ base units).<br><br>
-            • <strong>XIRR (Extended Internal Rate of Return)</strong>: Solves $\sum \frac{C_t}{(1 + r)^{\frac{d_t - d_0}{365}}} = 0$ for irregular virtual trade cash inflows and outflows using Newton-Raphson root finding.<br><br>
-            • <strong>Double-Entry Integrity</strong>: Every trade settled here enforces ACID constraints, solvency checks, and balanced debits == credits in the underlying financial ledger.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: JOURNAL & TRACE (FR-8) -->
-    <div id="tab-journal" class="tab-content">
-      <div class="trace-container">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">💰 Double-Entry Journal (PostgreSQL Ledger)</div>
-            <button class="btn btn-secondary" onclick="loadJournal()">Refresh</button>
-          </div>
-          <div style="max-height: 550px; overflow-y: auto;">
-            <table id="journalTable">
-              <thead>
-                <tr>
-                  <th>Entry ID</th>
-                  <th>Account</th>
-                  <th>Debit (₹)</th>
-                  <th>Credit (₹)</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading ledger...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">📦 Trade Provenance Lineage (FR-8)</div>
-            <span class="badge badge-cyan" id="traceStatus">Select entry</span>
-          </div>
-          <div class="tree-box" id="traceOutput">
-            <div style="color: var(--text-muted); text-align: center; padding: 3rem;">
-              Click <strong>"Trace"</strong> on any journal entry or execution fill to reconstruct the 5-layer causal lineage graph back to the raw tick.
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: DIFF ENGINE (FR-9) -->
-    <div id="tab-differ" class="tab-content">
+      <!-- Capital & Equity Breakdown Panel -->
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">🔬 Differential Diagnostic Engine (FR-9)</div>
-          <div style="display:flex; gap:0.75rem;">
-            <input type="text" id="diffRun1" value="run_001" style="width:140px;" placeholder="Baseline Run" />
-            <input type="text" id="diffRun2" value="run_002" style="width:140px;" placeholder="Perturbed Run" />
-            <button class="btn" onclick="executeDiff()">Run Comparison</button>
+          <div class="panel-title">💰 Capital & Equity Breakdown</div>
+          <span style="font-size:0.8rem; color:var(--text-muted);">Real-time financial position</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; font-family:var(--font-mono); font-size:0.875rem;">
+          <div style="background:rgba(255,255,255,0.02); padding:1rem; border-radius:8px; border:1px solid var(--border-subtle);">
+            <div style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Initial Virtual Capital</div>
+            <strong id="wInitialCapital" style="font-size:1.1rem; display:block; margin-top:0.3rem;">₹100,000.00</strong>
           </div>
-        </div>
-        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.5rem;">
-          Aligns two execution streams strictly by sequence number (<code style="color:var(--accent-cyan);">evaluation_seq</code>) to detect the exact point and layer of divergence: 
-          <strong>INPUT</strong> (missing tick), <strong>OBSERVATION</strong> (indicator delta), <strong>DECISION</strong> (signal flip), or <strong>SETTLEMENT</strong> (execution mismatch).
-        </p>
-        <div id="diffResultsArea">
-          <div style="text-align:center; padding: 3rem; color:var(--text-muted);">
-            Click <strong>"Run Comparison"</strong> to execute the aligned stream differ between run_001 and run_002.
+          <div style="background:rgba(255,255,255,0.02); padding:1rem; border-radius:8px; border:1px solid var(--border-subtle);">
+            <div style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Securities Cost Basis</div>
+            <strong id="wInvestedCapital" style="font-size:1.1rem; display:block; margin-top:0.3rem;">₹0.00</strong>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB: RECONCILER (FR-12) -->
-    <div id="tab-reconciler" class="tab-content">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">🛡️ Cross-Store Consistency Auditor (FR-12)</div>
-          <button class="btn" onclick="loadReconciliation()">Run Consistency Audit</button>
-        </div>
-        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.25rem;">
-          Audits the strict FR-12 write ordering (MongoDB decision written before PostgreSQL settlement). Flags harmless orphaned decisions and catches any missing provenance.
-        </p>
-        <div id="reconciliationResultsArea">
-          <div style="text-align:center; padding: 3rem; color:var(--text-muted);">
-            Click <strong>"Run Consistency Audit"</strong> to verify cross-store consistency across MongoDB decisions and PostgreSQL ledger.
+          <div style="background:rgba(255,255,255,0.02); padding:1rem; border-radius:8px; border:1px solid var(--border-subtle);">
+            <div style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Market Valuation</div>
+            <strong id="wSecuritiesValue" style="color:var(--accent-cyan); font-size:1.1rem; display:block; margin-top:0.3rem;">₹0.00</strong>
+          </div>
+          <div style="background:rgba(255,255,255,0.02); padding:1rem; border-radius:8px; border:1px solid var(--border-subtle);">
+            <div style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Unrealized Gains / Losses</div>
+            <strong id="wUnrealizedPnl" style="font-size:1.1rem; display:block; margin-top:0.3rem;">₹0.00</strong>
+          </div>
+          <div style="background:rgba(16,185,129,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(16,185,129,0.25);">
+            <div style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Total Net Assets</div>
+            <strong id="wSummaryNetAssets" style="color:var(--accent-green); font-size:1.1rem; display:block; margin-top:0.3rem;">₹100,000.00</strong>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- TAB 4: LIVE MARKET DATA -->
+    <!-- ================================================================= -->
+    <!-- TAB 2: LIVE MARKET DATA & TRADE EXECUTION                         -->
+    <!-- ================================================================= -->
     <div id="tab-marketdata" class="tab-content">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">📡 Real-Time Market Data Feeds (Free NSE & BSE Quotes)</div>
+          <div>
+            <div class="panel-title">📡 Live Market Data (NSE & BSE Equities)</div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">Live market quotes via Yahoo Finance v8. Click <strong>⚡ Trade</strong> to execute simulated orders.</p>
+          </div>
           <div style="display:flex; gap:0.75rem;">
-            <button class="btn btn-secondary" onclick="loadMarketData()">Refresh Quotes</button>
-            <button class="btn" onclick="ingestLiveTicks()">Ingest Into MongoDB</button>
+            <button class="btn btn-secondary" onclick="loadMarketData()">↻ Refresh Quotes</button>
+            <button class="btn" onclick="ingestLiveTicks()">📥 Ingest Into Database</button>
           </div>
         </div>
-        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1.25rem;">
-          Queried directly via free Yahoo Finance v8 API. Execute virtual trades directly on live quotes below to update your Virtual Wallet without real money.
-        </p>
+        <div id="marketDataWarning" style="display:none; margin-bottom:1rem; padding:0.75rem 1rem; border-radius:8px; background:rgba(244, 63, 94, 0.12); border:1px solid rgba(244, 63, 94, 0.35); color:#fb7185; font-size:0.85rem; align-items:center; gap:0.5rem;">
+          <span>⚠️ <strong>Market Feed Warning:</strong> Unable to connect to live exchange feeds. Using cached market prices.</span>
+        </div>
         <table id="marketDataTable">
           <thead>
             <tr>
-              <th>NSE Symbol</th>
+              <th>Symbol</th>
               <th>Exchange</th>
               <th>Current Price</th>
-              <th>Previous Close</th>
+              <th>Prev Close</th>
               <th>24h Change</th>
               <th>Volume</th>
-              <th>Feed Status</th>
-              <th>Execute Virtual Trade</th>
+              <th>Virtual Trade</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Loading quotes...</td></tr>
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">Fetching live market data...</td></tr>
           </tbody>
         </table>
         <div id="ingestFeedback" style="margin-top:1rem;"></div>
       </div>
     </div>
 
-    <!-- Trade Execution Modal -->
-    <div id="tradeModal" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(5px); justify-content:center; align-items:center;">
-      <div class="panel" style="max-width:560px; width:92%; border-color:var(--accent-cyan); box-shadow:0 0 35px rgba(6,182,212,0.35);">
+    <!-- Modal: Virtual Trade Execution -->
+    <div id="tradeModal" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+      <div class="panel" style="max-width:540px; width:92%; border-color:var(--accent-cyan); box-shadow:0 0 35px rgba(0,240,255,0.25);">
         <div class="panel-header">
           <div class="panel-title">⚡ Execute Virtual Trade (Paper Mode)</div>
           <button class="btn btn-secondary" onclick="closeTradeModal()" style="padding:0.2rem 0.6rem;">✕</button>
         </div>
         <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">
-          Trades settle immediately with virtual currency. Full FR-12 write order and FR-13 statutory fee breakdown applied to your Virtual Wallet.
+          Virtual execution with full regulatory fee breakdown and instantaneous double-entry settlement.
         </p>
         
         <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
@@ -633,64 +603,127 @@
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
           <div class="form-group">
-            <label style="font-size:0.8rem; color:var(--text-muted);">Quantity (Units / Shares)</label>
+            <label style="font-size:0.8rem; color:var(--text-muted);">Quantity (Shares)</label>
             <input type="number" id="tradeQty" value="10" min="1" oninput="updateTradePreview()" />
           </div>
           <div class="form-group">
-            <label style="font-size:0.8rem; color:var(--text-muted);">Market Price (₹)</label>
+            <label style="font-size:0.8rem; color:var(--text-muted);">Price per Share (₹)</label>
             <input type="number" id="tradePrice" step="0.05" oninput="updateTradePreview()" />
           </div>
         </div>
 
         <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Broker Adapter (FR-13 Fee Schedule)</label>
+          <label style="font-size:0.8rem; color:var(--text-muted);">Broker Engine (Statutory Schedule)</label>
           <select id="tradeBroker" onchange="updateTradePreview()">
-            <option value="paper">PaperBroker (Configurable Statutory Fees)</option>
+            <option value="paper">PaperBroker (Standard Statutory Schedule)</option>
             <option value="shoonya">Shoonya by Finvasia (₹0 Brokerage)</option>
             <option value="dhan">DhanHQ (Zero Delivery Brokerage)</option>
-            <option value="kite">Zerodha Kite Connect (Standard Retail)</option>
+            <option value="kite">Zerodha Kite Connect (Retail Schedule)</option>
           </select>
         </div>
 
-        <!-- Live Statutory Fee Breakdown Preview -->
+        <!-- Realistic Multi-Line Statutory Charges Preview -->
         <div style="background:rgba(0,0,0,0.35); border:1px solid var(--border-subtle); border-radius:8px; padding:0.85rem; margin-bottom:1rem; font-family:var(--font-mono); font-size:0.78rem;">
-          <div style="color:var(--text-muted); font-weight:600; margin-bottom:0.4rem;">FR-13 Multi-Line Regulatory Fee Preview:</div>
+          <div style="color:var(--text-muted); font-weight:600; margin-bottom:0.4rem;">Statutory Transaction Charges Breakdown:</div>
           <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Brokerage:</span><span id="prevBrk">₹0.0000</span></div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>STT (0.1%):</span><span id="prevStt">₹0.0000</span></div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Exchange Charges (0.00345%):</span><span id="prevExc">₹0.0000</span></div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>GST (18% on Brokerage+Exchange):</span><span id="prevGst">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Securities Transaction Tax (STT 0.1%):</span><span id="prevStt">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Exchange Turnover Charges (0.00345%):</span><span id="prevExc">₹0.0000</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>GST (18% on Brokerage + Exchange):</span><span id="prevGst">₹0.0000</span></div>
           <div style="display:flex; justify-content:space-between; margin-bottom:0.2rem;"><span>Stamp Duty (0.015% BUY only):</span><span id="prevStm">₹0.0000</span></div>
           <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.08); margin-top:0.4rem; padding-top:0.4rem; font-weight:700;">
             <span id="prevTotalLabel">Estimated Cash Required:</span><span id="prevTotal" style="color:var(--accent-green);">₹0.0000</span>
           </div>
         </div>
 
-        <button class="btn" style="width:100%;" onclick="submitVirtualTrade()">Place Virtual Trade</button>
+        <button class="btn" style="width:100%; justify-content:center;" onclick="submitVirtualTrade()">Place Virtual Trade</button>
         <div id="tradeModalFeedback" style="margin-top:0.75rem;"></div>
       </div>
     </div>
 
-    <!-- TAB 5: STRATEGY STUDIO (TIER 1 & TIER 2) -->
+    <!-- ================================================================= -->
+    <!-- TAB 3: LEDGER & PROVENANCE                                        -->
+    <!-- ================================================================= -->
+    <div id="tab-ledger" class="tab-content">
+      <div class="trace-container">
+        <!-- Left: Financial Ledger -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">💰 Double-Entry Financial Ledger</div>
+              <p style="color:var(--text-muted); font-size:0.8rem; margin-top:0.2rem;">ACID-compliant journal postings with multi-line statutory accounting</p>
+            </div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <input type="text" id="ledgerSearchInput" placeholder="Filter by symbol or account..." style="width:180px; padding:0.35rem 0.65rem; font-size:0.75rem;" oninput="filterLedgerTable()" />
+              <button class="btn btn-secondary btn-sm" onclick="loadJournal()">↻</button>
+            </div>
+          </div>
+          <div style="max-height: 600px; overflow-y: auto;">
+            <table id="journalTable">
+              <thead>
+                <tr>
+                  <th>Entry Ref</th>
+                  <th>Asset / Side</th>
+                  <th>Account</th>
+                  <th>Debit (+)</th>
+                  <th>Credit (-)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">Loading financial journal...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Causal Provenance Tree -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">📦 Causal Provenance Lineage</div>
+              <p style="color:var(--text-muted); font-size:0.8rem; margin-top:0.2rem;">Reconstructs 5-layer history from financial entry to raw tick</p>
+            </div>
+            <span class="badge badge-cyan" id="traceStatus">Select entry</span>
+          </div>
+          <div class="tree-box" id="traceOutput">
+            <div style="color: var(--text-muted); text-align: center; padding: 4rem 1.5rem; line-height:1.7;">
+              👈 Click <strong>"Trace"</strong> on any ledger posting to reconstruct the complete backward lineage graph to its originating market tick.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TAB 4: STRATEGY SETTINGS & VALIDATOR                              -->
+    <!-- ================================================================= -->
     <div id="tab-studio" class="tab-content">
       <div class="panel" style="max-width: 900px; margin: 0 auto;">
         <div class="panel-header">
-          <div class="panel-title">🧪 Strategy Studio (Tier 2 AST Validator & Purity Smoke Test)</div>
-          <span class="badge badge-purple">Pre-Execution Verification</span>
+          <div>
+            <div class="panel-title">⚙️ Strategy Settings & Code Validator</div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">Static AST safety analyzer & bit-for-bit mathematical purity test</p>
+          </div>
+          <span class="badge badge-purple">Pre-Execution Safety Verification</span>
         </div>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
-          Submit custom Python trading algorithms. The engine parses the AST to block unauthorized imports (<code style="color:var(--accent-rose);">os</code>, <code style="color:var(--accent-rose);">socket</code>, <code style="color:var(--accent-rose);">open</code>) and external clocks (<code style="color:var(--accent-rose);">datetime.now</code>), then executes a purity test for bit-for-bit determinism (FR-7).
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.25rem; line-height:1.6;">
+          Deploy Python trading algorithms with complete execution safety. The engine inspects AST syntax trees to reject unauthorized network/file imports (<code style="color:var(--accent-rose);">os</code>, <code style="color:var(--accent-rose);">socket</code>, <code style="color:var(--accent-rose);">open</code>) and non-deterministic clocks (<code style="color:var(--accent-rose);">datetime.now</code>), then executes a purity smoke test.
         </p>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy ID</label>
-          <input type="text" id="stratId" value="momentum_v1" />
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Strategy ID</label>
+            <input type="text" id="stratId" value="momentum_v1" />
+          </div>
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Class Name</label>
+            <input type="text" id="stratClass" value="MomentumStrategy" />
+          </div>
         </div>
+
         <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy Class Name</label>
-          <input type="text" id="stratClass" value="MomentumStrategy" />
-        </div>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Python Code</label>
-          <textarea id="stratCode" rows="12" style="font-family:var(--font-mono); font-size:0.8rem;">from decimal import Decimal
+          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy Python Implementation</label>
+          <textarea id="stratCode" rows="11" style="font-family:var(--font-mono); font-size:0.8rem;">from decimal import Decimal
 from glassledger.domain.models import Signal, Tick
 from glassledger.domain.strategies.base import BaseStrategy
 
@@ -705,195 +738,320 @@ class MomentumStrategy(BaseStrategy):
         return new_state, signal, {"threshold": str(threshold), "current_price": str(price)}
 </textarea>
         </div>
+
         <div style="display:flex; gap:1rem;">
-          <button class="btn btn-secondary" onclick="validateCustomStrategy()">Test AST & Purity</button>
-          <button class="btn" onclick="submitCustomStrategy()">Register in MongoDB</button>
+          <button class="btn btn-secondary" onclick="validateCustomStrategy()">🔬 Test Code Purity & Safety</button>
+          <button class="btn" onclick="submitCustomStrategy()">💾 Register Strategy</button>
         </div>
         <div id="studioFeedback" style="margin-top:1.25rem;"></div>
       </div>
     </div>
 
-    <!-- TAB 6: CRASH SAFETY LAB (FR-10) -->
-    <div id="tab-crashlab" class="tab-content">
-      <div class="panel" style="max-width: 800px; margin: 0 auto;">
-        <div class="panel-header">
-          <div class="panel-title">🛡️ FR-10 Live OS-Level SIGKILL Crash Safety Lab</div>
-          <span class="badge badge-rose">Subprocess Process Termination</span>
-        </div>
-        <p style="color:var(--text-main); font-size:0.9rem; line-height:1.6; margin-bottom:1.5rem;">
-          Tests the database engine's durability by spawning an independent OS child process that mutates investor balances (<code style="color:var(--accent-rose);">-₹5,000</code>) and inserts an uncommitted order. Before committing, the parent brutally executes <code style="color:var(--accent-rose);">proc.kill()</code> (SIGKILL / TerminateProcess).
-        </p>
-        <button class="btn btn-danger" style="font-size:0.95rem; padding:0.75rem 1.5rem;" onclick="triggerCrashDemo()">
-          ⚡ Execute Subprocess SIGKILL Crash Test
-        </button>
-        <div id="crashOutput" style="margin-top:1.5rem;"></div>
+    <!-- ================================================================= -->
+    <!-- TAB 5: SIMULATIONS & DIAGNOSTICS (WITH SUBTABS)                   -->
+    <!-- ================================================================= -->
+    <div id="tab-simulations" class="tab-content">
+      <!-- Sub-navigation for testing & simulations -->
+      <div class="subnav">
+        <button class="subnav-btn active" onclick="switchSimSubTab('runner')">⚡ Simulation Runner</button>
+        <button class="subnav-btn" onclick="switchSimSubTab('diff')">🔬 Divergence Engine</button>
+        <button class="subnav-btn" onclick="switchSimSubTab('reconciler')">🛡️ Consistency Auditor</button>
+        <button class="subnav-btn" onclick="switchSimSubTab('crashlab')">💥 Crash Recovery Lab</button>
+        <button class="subnav-btn" onclick="switchSimSubTab('databases')">🗄️ Database Inspector</button>
       </div>
-    </div>
 
-    <!-- TAB 7: DATABASE INSPECTOR -->
-    <div id="tab-databases" class="tab-content">
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+      <!-- SUBTAB 1: SIMULATION RUNNER -->
+      <div id="subtab-runner" class="sim-subcontent active">
+        <div class="panel" style="max-width: 680px; margin: 0 auto;">
+          <div class="panel-header">
+            <div class="panel-title">⚡ Execute Historical Trading Simulation</div>
+          </div>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
+            Runs strategy over recorded ticks. Every decision envelope is recorded to MongoDB telemetry prior to atomic PostgreSQL ledger settlement.
+          </p>
+
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Run Identifier (Unique)</label>
+            <input type="text" id="simRunId" value="run_003" />
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.8rem; color:var(--text-muted);">Trading Strategy</label>
+              <select id="simStrategy">
+                <option value="rsi_v1">Wilder's RSI (rsi_v1)</option>
+                <option value="ma_v1">Dual SMA Crossover (ma_v1)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.8rem; color:var(--text-muted);">Market Dataset</label>
+              <input type="text" id="simDataset" value="baseline_ticks" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Inject Perturbation Seq (Optional - For Divergence Testing)</label>
+            <input type="number" id="simDropSeq" placeholder="Leave empty for unperturbed baseline" />
+          </div>
+
+          <div class="form-group">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Broker Engine Seam</label>
+            <select id="simBroker">
+              <option value="paper">PaperBroker (Deterministic Offline, Regulatory Fees)</option>
+              <option value="shoonya">Shoonya by Finvasia (₹0 Brokerage API)</option>
+              <option value="dhan">DhanHQ API (Zero Delivery Brokerage)</option>
+              <option value="kite">Zerodha Kite Connect (Retail Schedule)</option>
+            </select>
+          </div>
+
+          <button class="btn" style="width:100%; justify-content:center; margin-top:0.5rem;" onclick="triggerRun()">Launch Execution</button>
+          <div id="simOutput" style="margin-top:1.25rem;"></div>
+        </div>
+      </div>
+
+      <!-- SUBTAB 2: DIVERGENCE ENGINE -->
+      <div id="subtab-diff" class="sim-subcontent">
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">🏛️ Relational Ledger (PostgreSQL 16.8)</div>
-            <span class="badge badge-green" id="relationalEngineBadge">ACID Financial Store</span>
+            <div>
+              <div class="panel-title">🔬 Differential Diagnostic Engine</div>
+              <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">Aligns execution streams strictly by sequence number to isolate divergence layer</p>
+            </div>
+            <div style="display:flex; gap:0.75rem; align-items:center;">
+              <input type="text" id="diffRun1" value="run_001" style="width:130px;" placeholder="Baseline Run" />
+              <input type="text" id="diffRun2" value="run_002" style="width:130px;" placeholder="Perturbed Run" />
+              <button class="btn" onclick="executeDiff()">Run Comparison</button>
+            </div>
           </div>
-          <div id="relationalTablesList">Loading tables...</div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">🍃 Document Store (MongoDB 8.2)</div>
-            <span class="badge badge-purple">Time-Series & Telemetry</span>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.5rem;">
+            Classifies divergence into 4 distinct architectural layers: <strong>INPUT</strong> (missing market tick), <strong>OBSERVATION</strong> (indicator delta), <strong>DECISION</strong> (signal flip), or <strong>SETTLEMENT</strong> (execution mismatch).
+          </p>
+          <div id="diffResultsArea">
+            <div style="text-align:center; padding: 3rem; color:var(--text-muted);">
+              Enter two run IDs and click <strong>"Run Comparison"</strong> to execute sequence-aligned stream differencing.
+            </div>
           </div>
-          <div id="documentCollectionsList">Loading collections...</div>
         </div>
       </div>
-    </div>
 
-    <!-- TAB 8: SIMULATION RUNNER -->
-    <div id="tab-simulator" class="tab-content">
-      <div class="panel" style="max-width: 650px; margin: 0 auto;">
-        <div class="panel-header">
-          <div class="panel-title">⚡ Execute Strategy Run</div>
+      <!-- SUBTAB 3: CONSISTENCY AUDITOR -->
+      <div id="subtab-reconciler" class="sim-subcontent">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">🛡️ Cross-Store Consistency Auditor</div>
+              <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">Audits MongoDB decision envelopes against PostgreSQL ledger transactions</p>
+            </div>
+            <button class="btn" onclick="loadReconciliation()">Run Consistency Audit</button>
+          </div>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
+            Enforces write ordering where MongoDB decision snapshots are permanently committed before PostgreSQL settlement commits. Detects and flags harmless unexecuted decisions vs critical orphan ledger entries.
+          </p>
+          <div id="reconciliationResultsArea">
+            <div style="text-align:center; padding: 3rem; color:var(--text-muted);">
+              Click <strong>"Run Consistency Audit"</strong> to verify dual-store consistency.
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Run Identifier (Unique)</label>
-          <input type="text" id="simRunId" value="run_003" />
+      </div>
+
+      <!-- SUBTAB 4: CRASH RECOVERY LAB -->
+      <div id="subtab-crashlab" class="sim-subcontent">
+        <div class="panel" style="max-width: 800px; margin: 0 auto;">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">💥 Live OS-Level SIGKILL Crash Recovery Lab</div>
+              <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">Subprocess crash verification with zero database corruption</p>
+            </div>
+            <span class="badge badge-rose">Brutal OS Process Kill</span>
+          </div>
+          <p style="color:var(--text-main); font-size:0.9rem; line-height:1.6; margin-bottom:1.5rem;">
+            Proves ledger durability by spawning an independent OS child process that mutates balances (<code style="color:var(--accent-rose);">-₹5,000</code>) and prepares an uncommitted order. Mid-transaction, the parent process abruptly issues <code style="color:var(--accent-rose);">SIGKILL (kill -9)</code>. The test asserts 100% rollback with zero orphan rows.
+          </p>
+          <button class="btn btn-danger" style="font-size:0.95rem; padding:0.75rem 1.5rem;" onclick="triggerCrashDemo()">
+            ⚡ Execute Subprocess SIGKILL Crash Test
+          </button>
+          <div id="crashOutput" style="margin-top:1.5rem;"></div>
         </div>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Strategy</label>
-          <select id="simStrategy">
-            <option value="rsi_v1">Wilder's RSI (rsi_v1)</option>
-            <option value="ma_v1">Dual SMA Crossover (ma_v1)</option>
-          </select>
+      </div>
+
+      <!-- SUBTAB 5: DATABASE INSPECTOR -->
+      <div id="subtab-databases" class="sim-subcontent">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">🏛️ Relational Ledger (PostgreSQL)</div>
+              <span class="badge badge-green" id="relationalEngineBadge">ACID Financial Store</span>
+            </div>
+            <div id="relationalTablesList">Loading tables...</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">🍃 Document Telemetry (MongoDB)</div>
+              <span class="badge badge-purple">Time-Series & Telemetry</span>
+            </div>
+            <div id="documentCollectionsList">Loading collections...</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Dataset</label>
-          <input type="text" id="simDataset" value="baseline_ticks" />
-        </div>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Inject Dropped Tick Seq (Optional - For FR-9 Testing)</label>
-          <input type="number" id="simDropSeq" placeholder="e.g. 1420" />
-        </div>
-        <div class="form-group">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Broker Engine Seam (Select Adapter)</label>
-          <select id="simBroker">
-            <option value="paper">PaperBroker (Deterministic Offline, ₹0 slippage/fee)</option>
-            <option value="shoonya">Shoonya by Finvasia (100% Free API + Free WebSocket)</option>
-            <option value="dhan">DhanHQ API (Free API + Free Market Feed)</option>
-            <option value="kite">Zerodha Kite Connect (₹500/mo Ticker Plan)</option>
-          </select>
-        </div>
-        <button class="btn" style="width:100%; margin-top:1rem;" onclick="triggerRun()">Launch Execution</button>
-        <div id="simOutput" style="margin-top:1.5rem;"></div>
       </div>
     </div>
   </main>
 
   <script>
+    // Global Tab Switching (5 top-level tabs)
     function switchTab(tabId) {
+      // Map old aliases if called from external handlers
+      if (tabId === 'wallet') tabId = 'dashboard';
+      if (tabId === 'differ') { tabId = 'simulations'; switchSimSubTab('diff'); }
+      if (tabId === 'reconciler') { tabId = 'simulations'; switchSimSubTab('reconciler'); }
+      if (tabId === 'crashlab') { tabId = 'simulations'; switchSimSubTab('crashlab'); }
+      if (tabId === 'databases') { tabId = 'simulations'; switchSimSubTab('databases'); }
+      if (tabId === 'simulator') { tabId = 'simulations'; switchSimSubTab('runner'); }
+
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
       const tabEl = document.getElementById('tab-' + tabId);
       if (tabEl) tabEl.classList.add('active');
-      const targetBtn = (typeof event !== 'undefined' && event && event.target && event.target.classList.contains('nav-btn')) 
-        ? event.target 
-        : document.querySelector(`.nav-btn[onclick*="${tabId}"]`);
+
+      const targetBtn = document.querySelector(`.nav-btn[onclick*="${tabId}"]`);
       if (targetBtn) targetBtn.classList.add('active');
 
-      if (tabId === 'dashboard') loadOverview();
-      if (tabId === 'wallet') loadWallet();
-      if (tabId === 'journal') loadJournal();
-      if (tabId === 'reconciler') loadReconciliation();
+      if (tabId === 'dashboard') { loadOverview(); loadWallet(); }
       if (tabId === 'marketdata') loadMarketData();
-      if (tabId === 'databases') loadDatabases();
+      if (tabId === 'ledger') loadJournal();
+      if (tabId === 'simulations') {
+        const activeSub = document.querySelector('.subnav-btn.active');
+        if (activeSub) {
+          const fnName = activeSub.getAttribute('onclick');
+          if (fnName && fnName.includes('databases')) loadDatabases();
+        }
+      }
     }
 
+    // Simulation Sub-tab switching
+    function switchSimSubTab(subId) {
+      document.querySelectorAll('.sim-subcontent').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.subnav-btn').forEach(el => el.classList.remove('active'));
+
+      const subEl = document.getElementById('subtab-' + subId);
+      if (subEl) subEl.classList.add('active');
+
+      const targetBtn = document.querySelector(`.subnav-btn[onclick*="${subId}"]`);
+      if (targetBtn) targetBtn.classList.add('active');
+
+      if (subId === 'databases') loadDatabases();
+      if (subId === 'reconciler') loadReconciliation();
+    }
+
+    // Load Overview (Solvency & Summary)
     async function loadOverview() {
       try {
         const res = await fetch('/api/overview');
         const data = await res.json();
         
         document.getElementById('headerDbMode').innerText = data.db_mode;
-        document.getElementById('mWalletBalance').innerText = '₹' + parseFloat(data.investor.wallet_balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 4, maximumFractionDigits: 4});
-        document.getElementById('mReservedCash').innerText = 'Reserved: ₹' + parseFloat(data.investor.reserved_cash || 0).toLocaleString('en-IN', {minimumFractionDigits: 4, maximumFractionDigits: 4});
-        
-        const unPnl = parseFloat(data.pnl?.unrealized_pnl || 0);
-        const elUnPnl = document.getElementById('mUnrealizedPnl');
-        elUnPnl.innerText = (unPnl >= 0 ? '+₹' : '-₹') + Math.abs(unPnl).toFixed(4);
-        elUnPnl.style.color = unPnl >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
-
-        const relPnl = parseFloat(data.pnl?.realized_pnl || 0);
-        document.getElementById('mRealizedPnl').innerText = 'Realized: ₹' + relPnl.toFixed(4);
+        document.getElementById('mWalletBalance').innerText = '₹' + parseFloat(data.investor.wallet_balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('mReservedCash').innerText = 'Reserved: ₹' + parseFloat(data.investor.reserved_cash || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         const isBalanced = data.journal_totals.is_balanced;
-        document.getElementById('mSolvencyState').innerText = isBalanced ? 'BALANCED' : 'UNBALANCED';
-        document.getElementById('mSolvencyState').style.color = isBalanced ? 'var(--accent-green)' : 'var(--accent-rose)';
+        const solvEl = document.getElementById('mSolvencyState');
+        solvEl.innerText = isBalanced ? 'BALANCED' : 'UNBALANCED';
+        solvEl.style.color = isBalanced ? 'var(--accent-green)' : 'var(--accent-rose)';
         document.getElementById('mJournalTotals').innerText = `Debits: ₹${parseFloat(data.journal_totals.total_debit).toFixed(2)} == Credits: ₹${parseFloat(data.journal_totals.total_credit).toFixed(2)}`;
 
-        document.getElementById('mTotalTicks').innerText = data.counts.ticks.toLocaleString();
-        document.getElementById('mTotalDecisions').innerText = data.counts.decisions.toLocaleString();
+        document.getElementById('mTotalDecisions').innerText = (data.counts.decisions || 0).toLocaleString();
         document.getElementById('mOrderFillRatio').innerText = `Orders: ${data.counts.orders} | Fills: ${data.counts.fills}`;
-
-        // Render Holdings Table
-        const tbody = document.querySelector('#holdingsTable tbody');
-        tbody.innerHTML = '';
-        if (data.holdings.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No securities owned yet.</td></tr>';
-        } else {
-          data.holdings.forEach(h => {
-            const valuation = parseFloat(h.current_valuation || 0).toFixed(4);
-            const pnlVal = parseFloat(h.unrealized_pnl || 0);
-            const pnlColor = pnlVal >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
-            const pnlSign = pnlVal >= 0 ? '+₹' : '-₹';
-
-            tbody.innerHTML += `
-              <tr>
-                <td><strong style="color:var(--accent-cyan);">${h.symbol}</strong></td>
-                <td>${h.quantity} shares</td>
-                <td>${h.reserved_quantity}</td>
-                <td>₹${parseFloat(h.avg_buy_price).toFixed(4)}</td>
-                <td>₹${parseFloat(h.current_price || h.avg_buy_price).toFixed(4)}</td>
-                <td style="color:var(--text-main);">₹${valuation}</td>
-                <td style="color:${pnlColor}; font-weight:600;">${pnlSign}${Math.abs(pnlVal).toFixed(4)}</td>
-              </tr>
-            `;
-          });
-        }
       } catch (err) {
         console.error("Failed to load overview", err);
       }
     }
 
+    // Friendly Human-Readable Account Formatter
+    function formatAccountBadge(acct) {
+      if (acct === 'CASH') return '<span class="account-pill pill-cash">💵 Cash Balance</span>';
+      if (acct === 'SECURITIES_AT_COST') return '<span class="account-pill pill-sec">📈 Stock Assets</span>';
+      if (acct === 'BROKERAGE_EXPENSE') return '<span class="account-pill pill-fee">💼 Brokerage</span>';
+      if (acct === 'STT_EXPENSE') return '<span class="account-pill pill-tax">🏛️ Securities Tax (STT)</span>';
+      if (acct === 'EXCHANGE_FEE_EXPENSE') return '<span class="account-pill pill-fee">⚡ Exchange Turnover</span>';
+      if (acct === 'GST_EXPENSE') return '<span class="account-pill pill-tax">🧾 GST Tax (18%)</span>';
+      if (acct === 'STAMP_DUTY_EXPENSE') return '<span class="account-pill pill-tax">📜 Stamp Duty</span>';
+      return `<span class="account-pill pill-fee">💸 ${acct}</span>`;
+    }
+
+    // Helper: Truncate IDs to readable badges
+    function compactId(fullId, prefixLen = 6, suffixLen = 6) {
+      if (!fullId) return 'N/A';
+      if (fullId.length <= prefixLen + suffixLen + 2) return fullId;
+      return fullId.slice(0, prefixLen) + '…' + fullId.slice(-suffixLen);
+    }
+
+    let allJournalRows = [];
+
+    // Load Journal
     async function loadJournal() {
       try {
-        const res = await fetch('/api/journal?limit=30');
-        const rows = await res.json();
-        const tbody = document.querySelector('#journalTable tbody');
-        tbody.innerHTML = '';
-        rows.forEach(r => {
-          tbody.innerHTML += `
-            <tr>
-              <td style="font-size:0.75rem;">${r.entry_id}</td>
-              <td><span class="badge ${r.ledger_account === 'CASH' ? 'badge-amber' : r.ledger_account === 'SECURITIES_AT_COST' ? 'badge-cyan' : 'badge-rose'}">${r.ledger_account}</span></td>
-              <td style="color:${parseFloat(r.debit) > 0 ? 'var(--accent-green)' : 'var(--text-muted)'};">₹${parseFloat(r.debit).toFixed(4)}</td>
-              <td style="color:${parseFloat(r.credit) > 0 ? 'var(--accent-rose)' : 'var(--text-muted)'};">₹${parseFloat(r.credit).toFixed(4)}</td>
-              <td>
-                <button class="btn btn-secondary" style="padding:0.25rem 0.6rem; font-size:0.75rem;" onclick="traceEntry('${r.entry_id}')">Trace</button>
-              </td>
-            </tr>
-          `;
-        });
+        const res = await fetch('/api/journal?limit=60');
+        allJournalRows = await res.json();
+        renderJournalTable(allJournalRows);
       } catch (err) {
         console.error("Failed to load journal", err);
       }
     }
 
+    function renderJournalTable(rows) {
+      const tbody = document.querySelector('#journalTable tbody');
+      tbody.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">No journal entries found. Execute a trade or run a simulation!</td></tr>';
+        return;
+      }
+      rows.forEach(r => {
+        const debitNum = parseFloat(r.debit || 0);
+        const creditNum = parseFloat(r.credit || 0);
+        const debitHtml = debitNum > 0 ? `<span style="color:var(--accent-green); font-weight:600;">+₹${debitNum.toFixed(4)}</span>` : '<span style="color:rgba(255,255,255,0.2);">-</span>';
+        const creditHtml = creditNum > 0 ? `<span style="color:var(--accent-rose); font-weight:600;">-₹${creditNum.toFixed(4)}</span>` : '<span style="color:rgba(255,255,255,0.2);">-</span>';
+
+        const shortEntry = compactId(r.entry_id, 7, 7);
+        const symbolBadge = r.symbol ? `<span class="badge ${r.side === 'BUY' ? 'badge-green' : 'badge-rose'}" style="margin-right:0.35rem;">${r.side || 'TRADE'}</span><strong>${r.symbol}</strong>` : '<span style="color:var(--text-muted);">–</span>';
+
+        tbody.innerHTML += `
+          <tr>
+            <td>
+              <span class="id-badge" title="Copy ${r.entry_id}" onclick="navigator.clipboard.writeText('${r.entry_id}')">${shortEntry}</span>
+            </td>
+            <td>${symbolBadge}</td>
+            <td>${formatAccountBadge(r.ledger_account)}</td>
+            <td>${debitHtml}</td>
+            <td>${creditHtml}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" style="padding:0.25rem 0.6rem; font-size:0.75rem;" onclick="traceEntry('${r.entry_id}')">Trace</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function filterLedgerTable() {
+      const q = (document.getElementById('ledgerSearchInput').value || '').toLowerCase().trim();
+      if (!q) {
+        renderJournalTable(allJournalRows);
+        return;
+      }
+      const filtered = allJournalRows.filter(r => {
+        return (r.symbol && r.symbol.toLowerCase().includes(q)) ||
+               (r.ledger_account && r.ledger_account.toLowerCase().includes(q)) ||
+               (r.entry_id && r.entry_id.toLowerCase().includes(q));
+      });
+      renderJournalTable(filtered);
+    }
+
+    // 5-Layer Causal Trace
     async function traceEntry(entryId) {
-      document.getElementById('traceStatus').innerText = 'Tracing ' + entryId;
+      document.getElementById('traceStatus').innerText = compactId(entryId, 8, 8);
       const box = document.getElementById('traceOutput');
-      box.innerHTML = '<div style="color:var(--accent-cyan); padding:2rem; text-align:center;">Traversing cross-store causal lineage backwards...</div>';
+      box.innerHTML = '<div style="color:var(--accent-cyan); padding:3rem; text-align:center;">Traversing cross-store causal lineage backwards...</div>';
       
       try {
         const res = await fetch('/api/trace/' + encodeURIComponent(entryId));
@@ -914,45 +1072,46 @@ class MomentumStrategy(BaseStrategy):
         let indDetails = Object.entries(inds).map(([k, v]) => `<div>${k}: <strong style="color:var(--accent-cyan);">${v}</strong></div>`).join('');
 
         box.innerHTML = `
-          <div style="font-size:0.9rem; font-weight:700; color:var(--accent-green); margin-bottom:1rem;">
-            ✔ Complete Provenance Verified: ${j.entry_id}
+          <div style="font-size:0.875rem; font-weight:700; color:var(--accent-green); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>✔ Complete Lineage Verified</span>
+            <span class="badge badge-green">Zero Causal Drift</span>
           </div>
           
           <div class="tree-node journal">
-            <div style="color:var(--accent-amber); font-weight:600;">1. 💰 Financial Movement (PostgreSQL ACID Ledger)</div>
+            <div style="color:var(--accent-amber); font-weight:600; margin-bottom:0.3rem;">1. 💰 Financial Ledger Entry (PostgreSQL)</div>
             <div>Account: <strong>${j.account}</strong></div>
-            <div>Debit: <span style="color:var(--accent-green);">₹${j.debit}</span> | Credit: <span style="color:var(--accent-rose);">₹${j.credit}</span></div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Timestamp: ${j.created_at}</div>
+            <div>Debit: <span style="color:var(--accent-green); font-weight:600;">₹${j.debit}</span> | Credit: <span style="color:var(--accent-rose); font-weight:600;">₹${j.credit}</span></div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Timestamp: ${j.created_at}</div>
           </div>
 
           <div class="tree-node fill">
-            <div style="color:var(--accent-cyan); font-weight:600;">2. ⚡ Execution Fill</div>
-            <div>Fill ID: <strong>${f.fill_id}</strong></div>
-            <div>Shares: <strong>${f.quantity}</strong> @ ₹${f.price} (Fee: ₹${f.fee})</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Settled: ${f.executed_at}</div>
+            <div style="color:var(--accent-cyan); font-weight:600; margin-bottom:0.3rem;">2. ⚡ Execution Fill</div>
+            <div>Fill ID: <strong>${compactId(f.fill_id, 10, 8)}</strong></div>
+            <div>Quantity: <strong>${f.quantity} shares</strong> @ ₹${f.price} (Statutory Fees: ₹${f.fee})</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Settled: ${f.executed_at}</div>
           </div>
 
           <div class="tree-node order">
-            <div style="color:var(--accent-purple); font-weight:600;">3. 📋 Order Intent (Reservation Locked)</div>
-            <div>Order ID: <strong>${o.order_id}</strong></div>
-            <div>Side: <strong>${o.side}</strong> | Symbol: <strong>${o.symbol}</strong> @ ₹${o.price}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Decision Ref: ${o.decision_ref}</div>
+            <div style="color:var(--accent-purple); font-weight:600; margin-bottom:0.3rem;">3. 📋 Order Intent (Reservation Locked)</div>
+            <div>Order ID: <strong>${compactId(o.order_id, 10, 8)}</strong></div>
+            <div>Side: <span class="badge ${o.side === 'BUY' ? 'badge-green' : 'badge-rose'}">${o.side}</span> | Asset: <strong>${o.symbol}</strong> @ ₹${o.price}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Decision Link: ${compactId(o.decision_ref, 10, 8)}</div>
           </div>
 
           <div class="tree-node decision">
-            <div style="color:var(--accent-rose); font-weight:600;">4. 🧠 Pure Strategy VM Decision (MongoDB)</div>
-            <div>Decision ID: <strong>${p.decision_id || 'N/A'}</strong></div>
+            <div style="color:var(--accent-rose); font-weight:600; margin-bottom:0.3rem;">4. 🧠 Strategy VM Decision (MongoDB)</div>
+            <div>Decision ID: <strong>${compactId(p.decision_id || 'N/A', 10, 8)}</strong></div>
             <div>Signal Generated: <span class="badge ${p.signal === 'BUY' ? 'badge-green' : 'badge-rose'}">${p.signal || 'N/A'}</span> (Seq #${p.evaluation_seq || 'N/A'})</div>
-            <div style="margin-top:0.4rem; padding-top:0.4rem; border-top:1px solid rgba(255,255,255,0.06); font-size:0.8rem;">
+            <div style="margin-top:0.4rem; padding-top:0.4rem; border-top:1px solid rgba(255,255,255,0.06); font-size:0.78rem;">
               ${indDetails}
             </div>
           </div>
 
           <div class="tree-node tick">
-            <div style="color:var(--accent-green); font-weight:600;">5. ⏱️ Originating Market Tick (MongoDB Time-Series)</div>
+            <div style="color:var(--accent-green); font-weight:600; margin-bottom:0.3rem;">5. ⏱️ Originating Market Tick (MongoDB Time-Series)</div>
             <div>Event ID: <strong>${tick.event_id || 'N/A'}</strong></div>
             <div>Tick Price: <strong>₹${tick.price || 'N/A'}</strong> | Volume: ${tick.volume || 'N/A'}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Tick Timestamp: ${tick.timestamp || 'N/A'}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Tick Time: ${tick.timestamp || 'N/A'}</div>
           </div>
         `;
       } catch (err) {
@@ -960,6 +1119,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
+    // Divergence Engine (Differential Diagnostic)
     async function executeDiff() {
       const run1 = document.getElementById('diffRun1').value.trim();
       const run2 = document.getElementById('diffRun2').value.trim();
@@ -974,7 +1134,7 @@ class MomentumStrategy(BaseStrategy):
           area.innerHTML = `
             <div style="background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.3); border-radius:12px; padding:2rem; text-align:center;">
               <h3 style="color:var(--accent-green); margin-bottom:0.5rem;">✔ 100% BIT-FOR-BIT DETERMINISTIC PARITY</h3>
-              <p style="color:var(--text-muted);">Verified across ${data.total_sequences_verified} sequence numbers without divergence in inputs, observations, decisions, or settlement.</p>
+              <p style="color:var(--text-muted);">Verified across ${data.total_sequences_verified} sequence numbers with zero divergence across inputs, observations, decisions, or settlement.</p>
             </div>
           `;
           return;
@@ -1022,23 +1182,34 @@ class MomentumStrategy(BaseStrategy):
               </tr>
               <tr>
                 <td><strong>Settlement Order ID</strong></td>
-                <td>${r1.order_id || 'None'}</td>
-                <td>${r2.order_id || 'None'}</td>
+                <td>${compactId(r1.order_id || 'None')}</td>
+                <td>${compactId(r2.order_id || 'None')}</td>
               </tr>
             </tbody>
           </table>
         `;
       } catch (err) {
-        area.innerHTML = `<div style="color:var(--accent-rose);">Diff failed: ${err}</div>`;
+        area.innerHTML = `<div style="color:var(--accent-rose);">Comparison failed: ${err}</div>`;
       }
     }
 
+    // Live Market Data
     async function loadMarketData() {
       const tbody = document.querySelector('#marketDataTable tbody');
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Fetching live NSE quotes...</td></tr>';
+      const warningEl = document.getElementById('marketDataWarning');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">Fetching live NSE & BSE quotes...</td></tr>';
       try {
         const res = await fetch('/api/market-data/live');
         const data = await res.json();
+        
+        // Show warning only if live data couldn't be fetched or feed is offline
+        const hasOffline = !data.quotes || data.quotes.length === 0 || data.quotes.some(q => q.status && q.status.toUpperCase() !== 'LIVE' && q.status.toUpperCase() !== 'ONLINE');
+        if (hasOffline) {
+          warningEl.style.display = 'flex';
+        } else {
+          warningEl.style.display = 'none';
+        }
+
         tbody.innerHTML = '';
         data.quotes.forEach(q => {
           const isUp = q.change.startsWith('+');
@@ -1051,15 +1222,16 @@ class MomentumStrategy(BaseStrategy):
               <td style="color:var(--text-muted);">₹${q.previous_close}</td>
               <td style="color:${color}; font-weight:600;">${q.change} (${q.change_pct})</td>
               <td>${q.volume.toLocaleString()}</td>
-              <td><span class="badge badge-green">${q.status}</span></td>
               <td>
-                <button class="btn btn-sm" style="padding:0.3rem 0.75rem; font-size:0.75rem; background:linear-gradient(135deg, #06b6d4, #3b82f6); color:#fff;" onclick="openTradeModal('${q.symbol}', '${q.price}')">⚡ Trade</button>
+                <button class="btn btn-sm" style="padding:0.3rem 0.75rem; font-size:0.75rem;" onclick="openTradeModal('${q.symbol}', '${q.price}')">⚡ Trade</button>
               </td>
             </tr>
           `;
         });
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--accent-rose);">Failed to load live feed: ${err}</td></tr>`;
+        warningEl.style.display = 'flex';
+        warningEl.innerHTML = `<span>⚠️ <strong>Live Market Feed Offline:</strong> Unable to connect to exchange feed. Real-time prices could not be fetched.</span>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--accent-rose); text-align:center; padding:2rem;">Failed to load live feed: ${err}</td></tr>`;
       }
     }
 
@@ -1080,6 +1252,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
+    // Strategy Studio
     async function validateCustomStrategy() {
       const code = document.getElementById('stratCode').value;
       const className = document.getElementById('stratClass').value.trim();
@@ -1096,7 +1269,7 @@ class MomentumStrategy(BaseStrategy):
         if (data.valid) {
           fb.innerHTML = `
             <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:1rem; border-radius:8px;">
-              <h4 style="color:var(--accent-green);">✔ PASSED ALL INVARIANTS</h4>
+              <h4 style="color:var(--accent-green);">✔ CODE SAFETY & DETERMINISM VERIFIED</h4>
               <p style="color:var(--text-main); font-size:0.85rem; margin-top:0.4rem;">${data.message}</p>
             </div>
           `;
@@ -1132,7 +1305,7 @@ class MomentumStrategy(BaseStrategy):
           fb.innerHTML = `
             <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:1rem; border-radius:8px;">
               <h4 style="color:var(--accent-green);">✔ STRATEGY REGISTERED</h4>
-              <p style="color:var(--text-main); font-size:0.85rem; margin-top:0.4rem;">Registered ${data.strategy_id} into MongoDB 'strategies' collection. Ready for simulation execution.</p>
+              <p style="color:var(--text-main); font-size:0.85rem; margin-top:0.4rem;">Registered ${data.strategy_id} into MongoDB collection. Ready for execution in Simulations.</p>
             </div>
           `;
         } else {
@@ -1143,6 +1316,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
+    // Crash Recovery Demo
     async function triggerCrashDemo() {
       const out = document.getElementById('crashOutput');
       out.innerHTML = '<div style="color:var(--accent-cyan);">Spawning child OS worker, mutating PostgreSQL uncommitted balance, and sending SIGKILL...</div>';
@@ -1154,15 +1328,15 @@ class MomentumStrategy(BaseStrategy):
         out.innerHTML = `
           <div style="background:rgba(16, 185, 129, 0.12); border:1px solid var(--accent-green); border-radius:12px; padding:1.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-              <h3 style="color:var(--accent-green);">✔ CRASH SAFETY VERIFIED (FR-10)</h3>
+              <h3 style="color:var(--accent-green);">✔ CRASH SAFETY & TRANSACTION ROLLBACK VERIFIED</h3>
               <span class="badge badge-green">${data.os_kill_signal}</span>
             </div>
             <div style="font-family:var(--font-mono); font-size:0.85rem; line-height:1.8;">
-              <div>Initial Wallet Balance: <strong>₹${data.initial_balance}</strong></div>
+              <div>Initial Balance: <strong>₹${data.initial_balance}</strong></div>
               <div>Uncommitted Mutation Attempted: <span style="color:var(--accent-rose);">${data.uncommitted_mutation_attempted}</span></div>
               <div>Child Process Termination: <strong>Brutal OS SIGKILL (proc.kill())</strong></div>
               <div>Post-Crash Re-Query Balance: <strong style="color:var(--accent-green);">₹${data.post_crash_balance}</strong> (100% Restored)</div>
-              <div>Orphaned Orders Persisted in Database: <strong style="color:var(--accent-green);">${data.orphaned_orders_in_db}</strong></div>
+              <div>Orphaned Orders in Database: <strong style="color:var(--accent-green);">${data.orphaned_orders_in_db}</strong></div>
               <div>Crash & Rollback Elapsed Time: <strong>${data.elapsed_seconds}s</strong></div>
             </div>
             <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.825rem; color:var(--text-muted);">
@@ -1176,12 +1350,12 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
+    // Database Inspector
     async function loadDatabases() {
       try {
         const res = await fetch('/api/databases');
         const data = await res.json();
 
-        // Relational
         const rList = document.getElementById('relationalTablesList');
         rList.innerHTML = '';
         for (const [tbl, info] of Object.entries(data.relational_store.tables)) {
@@ -1196,7 +1370,6 @@ class MomentumStrategy(BaseStrategy):
           `;
         }
 
-        // Mongo
         const mList = document.getElementById('documentCollectionsList');
         mList.innerHTML = '';
         for (const [coll, info] of Object.entries(data.document_store.collections)) {
@@ -1215,6 +1388,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
+    // Trigger Simulation Run
     async function triggerRun() {
       const runId = document.getElementById('simRunId').value.trim();
       const strategy = document.getElementById('simStrategy').value;
@@ -1236,14 +1410,15 @@ class MomentumStrategy(BaseStrategy):
         if (res.ok) {
           out.innerHTML = `
             <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:1rem; border-radius:8px;">
-              <h4 style="color:var(--accent-green); margin-bottom:0.5rem;">✔ Run ${data.run_id} Completed!</h4>
+              <h4 style="color:var(--accent-green); margin-bottom:0.5rem;">✔ Run ${data.run_id} Completed Successfully!</h4>
               <div>Ticks Evaluated: <strong>${data.ticks_evaluated}</strong></div>
-              <div>Orders Placed: <strong>${data.orders_placed}</strong> | Fills: <strong>${data.fills_settled}</strong></div>
+              <div>Orders Placed: <strong>${data.orders_placed}</strong> | Fills Settled: <strong>${data.fills_settled}</strong></div>
               <div>Final Wallet Balance: <strong>₹${data.wallet_balance}</strong></div>
-              <div>Double-Entry Debits == Credits: <strong>₹${data.total_debit}</strong></div>
+              <div>Double-Entry Total: <strong>₹${data.total_debit}</strong> (Balanced)</div>
             </div>
           `;
           loadOverview();
+          loadWallet();
         } else {
           out.innerHTML = `<div style="color:var(--accent-rose);">Error: ${data.detail}</div>`;
         }
@@ -1252,9 +1427,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
-    // ==========================================
-    // VIRTUAL WALLET & PORTFOLIO (NAV, Units, XIRR)
-    // ==========================================
+    // Load Virtual Portfolio Holdings & NAV
     async function loadWallet() {
       try {
         const res = await fetch('/api/wallet/summary');
@@ -1270,11 +1443,8 @@ class MomentumStrategy(BaseStrategy):
         xirrEl.style.color = xirrVal >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
 
         document.getElementById('wTotalNetAssets').innerText = '₹' + parseFloat(p.total_net_assets).toLocaleString('en-IN', {minimumFractionDigits: 2});
-        document.getElementById('wTotalPnl').innerText = `Total P&L: ₹${p.total_pnl} (${p.total_pnl_pct})`;
+        document.getElementById('wTotalPnl').innerText = `P&L: ₹${p.total_pnl} (${p.total_pnl_pct})`;
         document.getElementById('wTotalPnl').style.color = parseFloat(p.total_pnl) >= 0 ? 'var(--accent-green)' : 'var(--accent-rose)';
-
-        document.getElementById('wAvailableCash').innerText = '₹' + parseFloat(p.available_cash).toLocaleString('en-IN', {minimumFractionDigits: 2});
-        document.getElementById('wReservedCash').innerText = `Reserved: ₹${p.reserved_cash}`;
 
         document.getElementById('wInitialCapital').innerText = '₹' + parseFloat(p.initial_capital).toLocaleString('en-IN', {minimumFractionDigits: 2});
         document.getElementById('wInvestedCapital').innerText = '₹' + parseFloat(p.invested_capital).toLocaleString('en-IN', {minimumFractionDigits: 2});
@@ -1290,7 +1460,7 @@ class MomentumStrategy(BaseStrategy):
         const tbody = document.querySelector('#walletHoldingsTable tbody');
         tbody.innerHTML = '';
         if (!data.holdings || data.holdings.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:2rem;">No securities currently held. Execute a trade from the Live Market Data tab!</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">No securities currently owned. Open <strong>Live Market Data</strong> to execute a paper trade.</td></tr>';
         } else {
           data.holdings.forEach(h => {
             const isGain = parseFloat(h.unrealized_pnl) >= 0;
@@ -1304,9 +1474,8 @@ class MomentumStrategy(BaseStrategy):
                 <td>₹${h.invested_value}</td>
                 <td style="font-weight:700;">₹${h.current_value}</td>
                 <td style="color:${pnlColor}; font-weight:600;">${h.unrealized_pnl} (${h.unrealized_pnl_pct})</td>
-                <td><span class="badge badge-purple">${h.weight_pct}</span></td>
                 <td>
-                  <button class="btn btn-sm" style="padding:0.25rem 0.6rem; font-size:0.75rem;" onclick="openTradeModal('${h.symbol}', '${h.current_price}')">Trade</button>
+                  <button class="btn btn-sm" style="padding:0.25rem 0.65rem; font-size:0.75rem;" onclick="openTradeModal('${h.symbol}', '${h.current_price}')">⚡ Trade</button>
                 </td>
               </tr>
             `;
@@ -1317,9 +1486,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
-    // ==========================================
-    // TRADE EXECUTION MODAL & FR-13 PREVIEW
-    // ==========================================
+    // Trade Modal Controls
     let tradeSide = 'BUY';
 
     function openTradeModal(symbol, price) {
@@ -1399,7 +1566,7 @@ class MomentumStrategy(BaseStrategy):
         return;
       }
 
-      fb.innerHTML = '<div style="color:var(--accent-cyan);">Executing trade via FR-12 write order & FR-13 statutory fee settlement...</div>';
+      fb.innerHTML = '<div style="color:var(--accent-cyan);">Executing order & settling double-entry statutory postings...</div>';
 
       try {
         const res = await fetch('/api/trade/execute', {
@@ -1412,12 +1579,12 @@ class MomentumStrategy(BaseStrategy):
           fb.innerHTML = `
             <div style="background:rgba(16, 185, 129, 0.15); border:1px solid var(--accent-green); padding:0.85rem; border-radius:8px; font-size:0.825rem;">
               <h4 style="color:var(--accent-green); margin-bottom:0.4rem;">✔ Trade Executed & Settled!</h4>
-              <div>Fill ID: <strong>${data.fill.fill_id}</strong> @ ₹${data.fill.executed_price}</div>
+              <div>Fill Ref: <strong>${compactId(data.fill.fill_id, 8, 8)}</strong> @ ₹${data.fill.executed_price}</div>
               <div>Statutory Fees: <strong>₹${data.fill.total_fee}</strong> (Multi-line balanced journal posted)</div>
               <div>Updated Portfolio Value: <strong>₹${data.wallet.total_net_assets}</strong> | NAV: <strong>₹${data.wallet.nav_per_unit}</strong></div>
               <div style="margin-top:0.6rem; display:flex; gap:0.5rem;">
-                <button class="btn btn-sm" onclick="switchTab('wallet'); closeTradeModal();" style="padding:0.3rem 0.6rem; font-size:0.75rem;">View Virtual Wallet</button>
-                <button class="btn btn-sm btn-secondary" onclick="switchTab('journal'); closeTradeModal();" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Trace in Ledger</button>
+                <button class="btn btn-sm" onclick="switchTab('dashboard'); closeTradeModal();" style="padding:0.3rem 0.6rem; font-size:0.75rem;">View Dashboard</button>
+                <button class="btn btn-sm btn-secondary" onclick="switchTab('ledger'); closeTradeModal();" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Trace in Ledger</button>
               </div>
             </div>
           `;
@@ -1431,9 +1598,7 @@ class MomentumStrategy(BaseStrategy):
       }
     }
 
-    // ==========================================
-    // FR-12 CROSS-STORE RECONCILER
-    // ==========================================
+    // Consistency Auditor
     async function loadReconciliation() {
       const area = document.getElementById('reconciliationResultsArea');
       area.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--accent-cyan);">Auditing MongoDB decision envelopes against PostgreSQL ledger entries...</div>';
@@ -1446,11 +1611,11 @@ class MomentumStrategy(BaseStrategy):
         if (data.orphan_decisions && data.orphan_decisions.length > 0) {
           orphansHtml += `
             <div style="margin-top:1rem;">
-              <h5 style="color:var(--accent-amber); margin-bottom:0.4rem;">Harmless Orphan Decisions (Recorded in Mongo, but aborted before Postgres):</h5>
+              <h5 style="color:var(--accent-amber); margin-bottom:0.4rem;">Harmless Orphan Decisions (Recorded in telemetry, but aborted before settlement):</h5>
               <table>
-                <thead><tr><th>Decision ID</th><th>Claimed Order ID</th><th>Signal</th><th>Classification</th></tr></thead>
+                <thead><tr><th>Decision Ref</th><th>Claimed Order</th><th>Signal</th><th>Audit Status</th></tr></thead>
                 <tbody>
-                  ${data.orphan_decisions.map(d => `<tr><td>${d.decision_id}</td><td>${d.order_id}</td><td>${d.signal}</td><td><span class="badge badge-amber">${d.status}</span></td></tr>`).join('')}
+                  ${data.orphan_decisions.map(d => `<tr><td>${compactId(d.decision_id)}</td><td>${compactId(d.order_id)}</td><td>${d.signal}</td><td><span class="badge badge-amber">${d.status}</span></td></tr>`).join('')}
                 </tbody>
               </table>
             </div>
@@ -1458,10 +1623,11 @@ class MomentumStrategy(BaseStrategy):
         }
 
         const isGood = data.is_consistent;
+
         area.innerHTML = `
-          <div style="background:${isGood ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)'}; border:1px solid ${isGood ? 'var(--accent-green)' : 'var(--accent-amber)'}; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+          <div style="background:${isGood ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'}; border:1px solid ${isGood ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <h3 style="color:${isGood ? 'var(--accent-green)' : 'var(--accent-amber)'};">
+              <h3 style="color:${isGood ? 'var(--accent-green)' : 'var(--accent-amber)'}; font-size:1.05rem;">
                 ${isGood ? '✔ 100% CROSS-STORE CONSISTENCY VERIFIED' : '⚠ AUDIT REPORTED ORPHAN ENVELOPES'}
               </h3>
               <span class="badge ${isGood ? 'badge-green' : 'badge-amber'}">${isGood ? 'ALL INVARIANTS VALID' : 'AUDIT COMPLETE'}</span>
@@ -1471,7 +1637,7 @@ class MomentumStrategy(BaseStrategy):
 
           <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem; margin-bottom:1.5rem;">
             <div class="metric-card">
-              <div class="metric-title">Decisions Checked</div>
+              <div class="metric-title">Decisions Audited</div>
               <div class="metric-value" style="color:var(--accent-purple);">${data.total_decisions_checked}</div>
             </div>
             <div class="metric-card">

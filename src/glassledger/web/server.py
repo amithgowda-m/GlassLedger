@@ -212,7 +212,7 @@ def get_journal(limit: int = 50) -> list[dict[str, Any]]:
         query = (
             """
             SELECT j.entry_id, j.fill_id, j.ledger_account, j.debit, j.credit, j.created_at,
-                   f.quantity, f.price, o.symbol, o.side, o.decision_ref
+                   f.quantity, f.price, o.order_id, o.symbol, o.side, o.decision_ref
             FROM journal_entries j
             LEFT JOIN fills f ON j.fill_id = f.fill_id
             LEFT JOIN orders o ON f.order_id = o.order_id
@@ -222,7 +222,7 @@ def get_journal(limit: int = 50) -> list[dict[str, Any]]:
             if active_pg.is_sqlite_fallback
             else """
             SELECT j.entry_id, j.fill_id, j.ledger_account, j.debit, j.credit, j.created_at,
-                   f.quantity, f.price, o.symbol, o.side, o.decision_ref
+                   f.quantity, f.price, o.order_id, o.symbol, o.side, o.decision_ref
             FROM journal_entries j
             LEFT JOIN fills f ON j.fill_id = f.fill_id
             LEFT JOIN orders o ON f.order_id = o.order_id
