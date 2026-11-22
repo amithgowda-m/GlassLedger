@@ -151,6 +151,8 @@ What the suite covers:
 
 Without PostgreSQL, the settlement and invariant tests still run on the SQLite fallback, but there they verify logic only, not decimal precision or locking.
 
+Last verified on a live PostgreSQL 16.2: **106 passed, 0 skipped**. Details and caveats are in [`docs/normalization.md` §9](docs/normalization.md#9-verification-status). If your `POSTGRES_URI` has no password, set `PGPASSWORD`; the test user needs `CREATEDB`.
+
 ---
 
 ## License

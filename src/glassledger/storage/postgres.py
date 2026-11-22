@@ -380,6 +380,10 @@ class PostgresStorage:
             )
             conn.commit()
             done = {r["version"] for r in conn.execute("SELECT version FROM schema_migrations").fetchall()}
+            # End the implicit transaction opened by the SELECT; otherwise every
+            # conn.transaction() below becomes a savepoint of one outer transaction
+            # and a failure in file N would also roll back files 1..N-1.
+            conn.commit()
             for f in sorted(path.glob("*.sql")):
                 if f.name in done:
                     continue

@@ -200,9 +200,11 @@ class PortfolioManager:
         # Find earliest trade or default inception date
         with self.pg.get_connection_context() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT MIN(created_at) FROM orders WHERE investor_id = ?", (investor_id,)) if isinstance(conn, sqlite3.Connection) else cur.execute("SELECT MIN(created_at) FROM orders WHERE investor_id = %s", (investor_id,))
+            placeholder = "?" if isinstance(conn, sqlite3.Connection) else "%s"
+            cur.execute(f"SELECT MIN(created_at) AS earliest FROM orders WHERE investor_id = {placeholder}", (investor_id,))
             earliest_row = cur.fetchone()
-            earliest_dt = earliest_row[0] if earliest_row and earliest_row[0] else None
+            # Access by column name: works for sqlite3.Row and psycopg dict rows alike.
+            earliest_dt = earliest_row["earliest"] if earliest_row and earliest_row["earliest"] else None
 
             # Fetch all executed fills for cash flow timestamps
             cur.execute(

@@ -622,14 +622,30 @@ No. It has the same tables, FKs and unique keys, but money is stored as `REAL` a
 
 ## 9. Verification status
 
-Measured on the development machine, where PostgreSQL was **not** running and MongoDB was.
+Two runs on the development machine (Windows 11, MongoDB running in both):
 
-| Check | Where | Status |
-|---|---|---|
-| Migrations declare exactly these tables, named CHECKs, indexes, chart of accounts, `uq_orders_decision_ref`; no float types | static, `test_schema_normalization.py` | **Passed** |
-| SQLite fallback mirrors tables, FKs, single and composite unique keys, chart of accounts | `test_schema_normalization.py` | **Passed** |
-| Live PG catalog: PKs, FKs, UNIQUEs (incl. 003 composites), named CHECKs, ledger_accounts content, nullable fill_id, indexes, no float columns, migrations recorded | `test_schema_normalization.py` (9 tests) | **Not run**: no PostgreSQL |
-| Settlement logic: SELL validation, share reservation, SELL accounting, opening capital, lifecycle, UNIQUE(decision_ref) | `test_settlement.py` | **Passed on the SQLite fallback**; not run on PostgreSQL |
-| Denormalization invariants (§6) | `test_denormalization_invariants.py` | **Passed on the SQLite fallback**; not run on PostgreSQL |
-| Concurrent BUY and SELL reservation under `FOR UPDATE`; `ck_holding_solvency` by name; exact-decimal money; SIGKILL rollback (2 tests) | `test_invariants.py`, `test_backend_authority.py`, `test_crash_recovery.py` | **Not run**: no PostgreSQL |
-| Migrations 002 and 003 themselves (DO blocks, backfill, duplicate guards) | only exercised by the PG tests above | **Not run**: no PostgreSQL |
+- **PostgreSQL run:** a throwaway local **PostgreSQL 16.2** cluster (from the `pgserver` wheel) on 127.0.0.1:5432. `pytest -rs` gave **106 passed, 0 skipped**, repeated twice in a row.
+- **Fallback run** (PostgreSQL stopped): **90 passed, 16 skipped**. The skips are exactly the PostgreSQL-only tests.
+
+| Check | Where | PostgreSQL 16.2 | SQLite fallback |
+|---|---|---|---|
+| Migrations declare the documented tables, named CHECKs, indexes, chart of accounts, unique keys; no float types | static, `test_schema_normalization.py` | Passed | Passed |
+| SQLite fallback mirrors tables, FKs, single and composite unique keys, chart of accounts | `test_schema_normalization.py` | Passed | Passed |
+| Live catalog: PKs, FKs, UNIQUEs (incl. 003 composites), named CHECKs, ledger_accounts content, nullable fill_id, indexes, no float columns, migrations recorded | `test_schema_normalization.py` (9 tests) | **Passed** | skipped |
+| Settlement logic: SELL validation, share reservation, SELL accounting, opening capital, lifecycle, UNIQUE(decision_ref), one line per account per source | `test_settlement.py` | **Passed** | Passed (logic only) |
+| Denormalization invariants (§6) | `test_denormalization_invariants.py` | **Passed** | Passed (logic only) |
+| Concurrent BUY (10 threads, 2 accepted) and SELL (10 threads, 3 accepted) under `FOR UPDATE` | `test_invariants.py` | **Passed** | skipped |
+| `ck_holding_solvency` fires by name | `test_invariants.py` | **Passed** | skipped |
+| Exact-decimal money (0.1 / 0.2 amounts, plain `==`) | `test_backend_authority.py` | **Passed** | skipped |
+| SIGKILL mid-transaction rollback; SIGKILL mid-cancel keeps reservation | `test_crash_recovery.py` | **Passed** | skipped |
+| Migration 002 on a legacy-shaped DB: duplicate guard stops 002 without deleting rows; per-file transactions; backfill makes CASH == wallet; journal balanced; re-run is a no-op | `test_migrations_pg.py` | **Passed** | skipped |
+
+Caveats about the PostgreSQL run:
+- **Version.** It was 16.2, not 16.8. Docker's `postgres:16-alpine` was not available on this machine.
+- **uuid-ossp stub.** The `pgserver` build ships without contrib extensions, so `001`'s `CREATE EXTENSION "uuid-ossp"` was satisfied by an **empty stub** installed into the throwaway cluster only. No GlassLedger code calls any uuid-ossp function (all ids are application-generated VARCHARs), so behaviour is unaffected. Standard PostgreSQL installs ship the real extension.
+- **Authentication.** The project's local `.env` has a password-less `POSTGRES_URI`, so the run supplied the password via libpq's `PGPASSWORD`.
+
+Bugs found only by the first real PostgreSQL run, and fixed:
+- `PortfolioManager` indexed a psycopg dict row by position (`row[0]`), raising `KeyError` on PostgreSQL. It now reads by column name.
+- `run_migrations` ran all files inside one implicit transaction, so a failure in 002 also rolled back 001. Each file now commits independently, as documented.
+- The SIGKILL mid-cancel test's child script had a string-escaping error.

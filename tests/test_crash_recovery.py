@@ -160,14 +160,17 @@ pg = PostgresStorage()
 with pg.get_connection_context() as conn:
     with conn.transaction():
         pg.cancel_order(conn, "{order.order_id}", "killed mid-cancel")
-        sys.stdout.write("CANCEL_APPLIED_UNCOMMITTED\n")
+        sys.stdout.write("CANCEL_APPLIED_UNCOMMITTED\\n")
         sys.stdout.flush()
         time.sleep(30)
 """
     proc = subprocess.Popen([sys.executable, "-u", "-c", worker_script],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        assert proc.stdout.readline().strip() == "CANCEL_APPLIED_UNCOMMITTED"
+        line = proc.stdout.readline().strip()
+        if line != "CANCEL_APPLIED_UNCOMMITTED":
+            proc.kill()
+            raise AssertionError(f"child did not reach the kill point: stdout={line!r} stderr={proc.stderr.read()[-2000:]}")
         proc.kill()
         proc.wait(timeout=5)
     except Exception:
