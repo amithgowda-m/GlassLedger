@@ -51,6 +51,11 @@ EXPECTED_FKS = {
 
 EXPECTED_UNIQUE = {("investors", "email"), ("orders", "decision_ref")}
 
+# Composite UNIQUE keys (migration 003): table -> set of column tuples, in key order.
+EXPECTED_COMPOSITE_UNIQUE = {
+    "journal_entries": {("fill_id", "ledger_account"), ("capital_event_id", "ledger_account")},
+}
+
 EXPECTED_NAMED_CHECKS = {
     "investors": {"ck_wallet_positive", "ck_reserved_positive", "ck_cash_solvency"},
     "holdings": {"ck_holding_qty_positive", "ck_holding_reserved_positive", "ck_holding_solvency"},
@@ -60,8 +65,8 @@ EXPECTED_NAMED_CHECKS = {
 }
 
 EXPECTED_INDEXES = {
-    "idx_fills_order_id", "idx_journal_fill_id", "idx_journal_capital_event_id",
-    "idx_capital_events_investor", "uq_capital_opening_per_investor",
+    "idx_fills_order_id", "idx_capital_events_investor", "uq_capital_opening_per_investor",
+    "uq_journal_fill_account", "uq_journal_capital_account",
 }
 
 EXPECTED_ACCOUNTS = {
@@ -149,8 +154,27 @@ def test_pg_unique_constraints():
         WHERE c.contype = 'u' AND c.connamespace = 'public'::regnamespace
         """
     )
-    assert {(r["tbl"], r["col"]) for r in rows} == EXPECTED_UNIQUE
+    single = {}
+    for r in rows:
+        single.setdefault((r["tbl"], r["conname"]), []).append(r["col"])
+    assert {(t, cols[0]) for (t, _), cols in single.items() if len(cols) == 1} == EXPECTED_UNIQUE
     assert "uq_orders_decision_ref" in {r["conname"] for r in rows}
+
+    composite = _rows(
+        """
+        SELECT c.conname, c.conrelid::regclass::text AS tbl,
+               array_agg(a.attname ORDER BY k.ord) AS cols
+        FROM pg_constraint c
+        CROSS JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord)
+        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
+        WHERE c.contype = 'u' AND c.connamespace = 'public'::regnamespace
+        GROUP BY c.conname, c.conrelid HAVING COUNT(*) > 1
+        """
+    )
+    got = {}
+    for r in composite:
+        got.setdefault(r["tbl"], set()).add(tuple(r["cols"]))
+    assert got == EXPECTED_COMPOSITE_UNIQUE
 
 
 @requires_pg
@@ -215,6 +239,7 @@ def test_pg_indexes():
     idx = {r["indexname"] for r in _rows("SELECT indexname FROM pg_indexes WHERE schemaname = 'public'")}
     assert EXPECTED_INDEXES <= idx
     assert "idx_orders_decision_ref" not in idx  # superseded by uq_orders_decision_ref
+    assert not {"idx_journal_fill_id", "idx_journal_capital_event_id"} & idx  # superseded in 003
 
 
 @requires_pg
@@ -235,8 +260,10 @@ def migration_sql() -> str:
     return "\n".join(m.read_text(encoding="utf-8") for m in MIGRATIONS)
 
 
-def test_migration_files_are_001_and_002():
-    assert [m.name for m in MIGRATIONS] == ["001_initial_schema.sql", "002_settlement_correctness.sql"]
+def test_migration_files_are_001_to_003():
+    assert [m.name for m in MIGRATIONS] == [
+        "001_initial_schema.sql", "002_settlement_correctness.sql", "003_journal_line_uniqueness.sql",
+    ]
 
 
 def test_migrations_declare_exactly_the_documented_tables(migration_sql: str):
@@ -251,6 +278,8 @@ def test_migrations_declare_named_constraints_and_indexes(migration_sql: str):
         assert name in migration_sql
     assert "ADD CONSTRAINT uq_orders_decision_ref UNIQUE (decision_ref)" in migration_sql
     assert "DROP INDEX IF EXISTS idx_orders_decision_ref" in migration_sql
+    assert "UNIQUE (fill_id, ledger_account)" in migration_sql
+    assert "UNIQUE (capital_event_id, ledger_account)" in migration_sql
 
 
 def test_migrations_seed_the_documented_chart_of_accounts(migration_sql: str):
@@ -298,7 +327,7 @@ def test_sqlite_fallback_has_same_foreign_keys(sqlite_fallback):
 
 
 def test_sqlite_fallback_has_same_unique_keys(sqlite_fallback):
-    uniques = set()
+    uniques, composite = set(), {}
     for table in EXPECTED_TABLES:
         for idx in sqlite_fallback.execute(f"PRAGMA index_list({table})"):
             name, is_unique, origin, is_partial = idx[1], idx[2], idx[3], idx[4]
@@ -306,7 +335,10 @@ def test_sqlite_fallback_has_same_unique_keys(sqlite_fallback):
                 cols = [c[2] for c in sqlite_fallback.execute(f"PRAGMA index_info({name})")]
                 if len(cols) == 1:
                     uniques.add((table, cols[0]))
+                else:
+                    composite.setdefault(table, set()).add(tuple(cols))
     assert uniques == EXPECTED_UNIQUE
+    assert composite == EXPECTED_COMPOSITE_UNIQUE
 
 
 def test_sqlite_fallback_has_same_chart_of_accounts(sqlite_fallback):

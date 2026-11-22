@@ -510,3 +510,37 @@ def test_second_order_for_same_decision_is_refused_atomically(pg):
 
     assert order_row(pg, dup.order_id) is None
     assert account(pg, inv)[1] == reserved_after_first   # the duplicate's reservation rolled back
+
+
+# ---------------------------------------------------------------- Migration 003: one line per account per source
+
+def test_second_line_for_same_fill_and_account_is_refused(pg):
+    import sqlite3
+    import psycopg
+
+    inv = new_investor(pg)
+    buy = trade(pg, inv, OrderSide.BUY, 1, "100.0000")
+    with pytest.raises((sqlite3.IntegrityError, psycopg.IntegrityError)):
+        with pg.get_connection_context() as conn:
+            with _Cursor(conn) as c:
+                c.run(
+                    "INSERT INTO journal_entries (entry_id, fill_id, ledger_account, debit, credit) "
+                    "VALUES (%s, %s, 'CASH', 1, 0)",
+                    (f"j_dup_{_uid()}", f"fill_{buy.order_id}"),
+                )
+
+
+def test_second_line_for_same_capital_event_and_account_is_refused(pg):
+    import sqlite3
+    import psycopg
+
+    inv = new_investor(pg)
+    event_id = pg._query("SELECT event_id FROM capital_events WHERE investor_id = %s", (inv,))[0]["event_id"]
+    with pytest.raises((sqlite3.IntegrityError, psycopg.IntegrityError)):
+        with pg.get_connection_context() as conn:
+            with _Cursor(conn) as c:
+                c.run(
+                    "INSERT INTO journal_entries (entry_id, capital_event_id, ledger_account, debit, credit) "
+                    "VALUES (%s, %s, 'CASH', 1, 0)",
+                    (f"j_dup_{_uid()}", event_id),
+                )

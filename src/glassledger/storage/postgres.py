@@ -34,7 +34,7 @@ MIGRATIONS_DIR = Path("migrations/postgres")
 MONEY_Q = Decimal("0.0001")
 
 # Bump when the hand-mirrored SQLite DDL below changes incompatibly.
-SQLITE_SCHEMA_VERSION = 2
+SQLITE_SCHEMA_VERSION = 3
 
 SQLITE_DDL = [
     """
@@ -140,7 +140,9 @@ SQLITE_DDL = [
         credit NUMERIC(18, 4) NOT NULL DEFAULT 0.0000 CHECK (credit >= 0),
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0)),
-        CHECK ((fill_id IS NULL) <> (capital_event_id IS NULL))
+        CHECK ((fill_id IS NULL) <> (capital_event_id IS NULL)),
+        UNIQUE (fill_id, ledger_account),
+        UNIQUE (capital_event_id, ledger_account)
     )
     """,
 ]

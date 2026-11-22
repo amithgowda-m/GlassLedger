@@ -42,7 +42,7 @@ Invariants kept exactly:
 
 See [`docs/normalization.md`](docs/normalization.md) for the schema, normalization (3NF/BCNF) and the full invariant list.
 
-Schema changes live in `migrations/postgres/` (`001_initial_schema.sql`, `002_settlement_correctness.sql`) and are applied in order by `glassledger db migrate`.
+Schema changes live in `migrations/postgres/` (`001_initial_schema.sql`, `002_settlement_correctness.sql`, `003_journal_line_uniqueness.sql`) and are applied in order by `glassledger db migrate`.
 
 ---
 

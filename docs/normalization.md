@@ -2,7 +2,7 @@
 
 This document explains how the GlassLedger relational schema is normalized and where it deliberately is not. Every table, column and constraint named here is checked against:
 
-- `migrations/postgres/001_initial_schema.sql` and `migrations/postgres/002_settlement_correctness.sql`
+- `migrations/postgres/001_initial_schema.sql`, `002_settlement_correctness.sql` and `003_journal_line_uniqueness.sql`
 - `src/glassledger/storage/postgres.py` (write paths, and the hand-mirrored SQLite fallback schema)
 - `src/glassledger/domain/models.py`
 - `migrations/mongo/001_init_collections.js` and `src/glassledger/storage/mongo.py`
@@ -11,11 +11,11 @@ Schema claims are asserted by `tests/test_schema_normalization.py`. Invariants o
 
 ---
 
-## 1. Ground truth: the schema after migrations 001 + 002
+## 1. Ground truth: the schema after migrations 001–003
 
 All money columns are `NUMERIC(18,4)`; no PostgreSQL column is `REAL`/`FLOAT`. Ledger code uses `Decimal`, and the Pydantic models reject `float` input. Prices and averages are quantized to 4 dp with `ROUND_HALF_UP`. The SQLite fallback does **not** keep this guarantee (§1.9).
 
-Migrations are applied in filename order by `PostgresStorage.run_migrations()`, which records each one in `schema_migrations(version, applied_at)`. `001` is never edited; `002` is idempotent.
+Migrations are applied in filename order by `PostgresStorage.run_migrations()`, which records each one in `schema_migrations(version, applied_at)`. `001` is never edited; `002` and `003` are idempotent, and both stop with an error rather than delete rows if existing data violates a new unique key.
 
 ### 1.1 investors
 | Column | Type | Constraints |
@@ -79,8 +79,8 @@ Table-level: `ck_holding_solvency CHECK (reserved_quantity <= quantity)`.
 | Column | Type | Constraints |
 |---|---|---|
 | entry_id | VARCHAR(64) | **PK** |
-| fill_id | VARCHAR(64) | **NULL** since 002, **FK → fills** (`idx_journal_fill_id`) |
-| capital_event_id | VARCHAR(64) | NULL (002), **FK → capital_events** (`idx_journal_capital_event_id`) |
+| fill_id | VARCHAR(64) | **NULL** since 002, **FK → fills** |
+| capital_event_id | VARCHAR(64) | NULL (002), **FK → capital_events** |
 | ledger_account | VARCHAR(32) | NOT NULL, **FK → ledger_accounts** (`fk_journal_ledger_account`, 002; replaces 001's inline CHECK list) |
 | debit / credit | NUMERIC(18,4) | NOT NULL DEFAULT 0, each CHECK (≥ 0) |
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() |
@@ -88,6 +88,7 @@ Table-level: `ck_holding_solvency CHECK (reserved_quantity <= quantity)`.
 Table-level:
 - `ck_debit_or_credit CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0))`
 - `ck_journal_single_source CHECK ((fill_id IS NULL) <> (capital_event_id IS NULL))` (002): every line comes from exactly one fill or one capital event.
+- `uq_journal_fill_account UNIQUE (fill_id, ledger_account)` and `uq_journal_capital_account UNIQUE (capital_event_id, ledger_account)` (003): at most one line per account per source. Their indexes replace `idx_journal_fill_id` and `idx_journal_capital_event_id`, which 003 drops.
 
 ### 1.7 ledger_accounts (002)
 | Column | Type | Constraints |
@@ -181,7 +182,7 @@ TRADE_LEDGER(entry_id, fill_id, ledger_account, account_type, debit, credit, ent
              company_name, sector, current_price)
 ```
 
-**Functional dependencies.** F1–F6, F8 and F9 are declared in the DDL as a PK or UNIQUE. F7 holds only by code convention.
+**Functional dependencies.** All of F1–F9 are declared in the DDL as a PK or UNIQUE.
 
 | # | FD | Source |
 |---|---|---|
@@ -191,7 +192,7 @@ TRADE_LEDGER(entry_id, fill_id, ledger_account, account_type, debit, credit, ent
 | F4 | investor_id → name, email, wallet_balance, reserved_cash | PK investors |
 | F5 | email → investor_id | UNIQUE(email) |
 | F6 | symbol → company_name, sector, current_price | PK stocks |
-| F7 | fill_id, ledger_account → entry_id | **Convention only**: `process_fill` emits at most one line per account per fill. No UNIQUE enforces it. |
+| F7 | fill_id, ledger_account → entry_id | UNIQUE(fill_id, ledger_account) (003); before 003 this held only by code convention |
 | F8 | ledger_account → account_type | PK ledger_accounts (002) |
 | F9 | decision_ref → order_id | UNIQUE(decision_ref) (002) |
 
@@ -200,7 +201,7 @@ TRADE_LEDGER(entry_id, fill_id, ledger_account, account_type, debit, credit, ent
 **Candidate keys.**
 - With declared FDs: **{entry_id}**. Its closure is entry_id → fill_id → order_id → {investor_id, symbol}, plus ledger_account → account_type, which reaches every attribute.
   - F9 makes {decision_ref} a key of the *orders* attributes, but not of TRADE_LEDGER, because one order has many journal lines.
-- Adding F7: **{fill_id, ledger_account}** is a second candidate key.
+- With F7: **{fill_id, ledger_account}** is a second candidate key (declared since 003).
 
 **Which key matters for 2NF.**
 - With only {entry_id}, no partial dependency is possible, so 1NF ⇒ 2NF trivially. Every anomaly here is transitive.
@@ -255,7 +256,7 @@ What remains is `orders(order_id, investor_id, symbol, side, quantity, price, re
 | stocks | symbol → all | symbol | **Yes** |
 | orders | order_id → all; decision_ref → all (F9) | order_id, decision_ref (both candidate keys) | **Yes** |
 | fills | fill_id → all | fill_id | **Yes** |
-| journal_entries | entry_id → all; (fill_id, ledger_account) → entry_id (F7, convention) | entry_id, {fill_id, ledger_account} | **Yes** |
+| journal_entries | entry_id → all; (fill_id, ledger_account) → entry_id (F7); (capital_event_id, ledger_account) → entry_id | entry_id, {fill_id, ledger_account}, {capital_event_id, ledger_account} | **Yes** |
 | ledger_accounts | account_code → account_type | account_code | **Yes** |
 | capital_events | event_id → all | event_id | **Yes** |
 | holdings | (investor_id, symbol) → all | (investor_id, symbol) | **Yes** |
@@ -299,7 +300,7 @@ Caveats:
 | F3 | orders | PK |
 | F4, F5 | investors | PK, UNIQUE |
 | F6 | stocks | PK |
-| F7 | journal_entries | no constraint (§8) |
+| F7 | journal_entries | UNIQUE (003) |
 | F8 | ledger_accounts | PK |
 | F9 | orders | UNIQUE |
 
@@ -595,8 +596,8 @@ Yes to both, for the FDs in §3.2. Every determinant in every table is a key (§
 *Caveat:* stored balances are deliberate cross-table redundancy (§6), guarded by transactions, CHECKs and tests.
 
 **Key of the 1NF relation?**
-{entry_id}. With the convention F7, {fill_id, ledger_account} is a second key.
-*Caveat:* the 2NF step is only meaningful relative to that second key, and F7 is not a constraint. `UNIQUE (fill_id, ledger_account)` in a future migration would make it one.
+{entry_id}, and {fill_id, ledger_account}, which migration 003 declares UNIQUE.
+*Caveat:* the 2NF step is only meaningful relative to the composite key; with {entry_id} alone, 1NF is already 2NF.
 
 **Why store wallet_balance if it is derivable?**
 Row locks, `ck_cash_solvency`, and O(1) solvency checks.
@@ -626,9 +627,9 @@ Measured on the development machine, where PostgreSQL was **not** running and Mo
 | Check | Where | Status |
 |---|---|---|
 | Migrations declare exactly these tables, named CHECKs, indexes, chart of accounts, `uq_orders_decision_ref`; no float types | static, `test_schema_normalization.py` | **Passed** |
-| SQLite fallback mirrors tables, FKs, unique keys, chart of accounts | `test_schema_normalization.py` | **Passed** |
-| Live PG catalog: PKs, FKs, UNIQUEs, named CHECKs, ledger_accounts content, nullable fill_id, indexes, no float columns, migrations recorded | `test_schema_normalization.py` (9 tests) | **Not run**: no PostgreSQL |
+| SQLite fallback mirrors tables, FKs, single and composite unique keys, chart of accounts | `test_schema_normalization.py` | **Passed** |
+| Live PG catalog: PKs, FKs, UNIQUEs (incl. 003 composites), named CHECKs, ledger_accounts content, nullable fill_id, indexes, no float columns, migrations recorded | `test_schema_normalization.py` (9 tests) | **Not run**: no PostgreSQL |
 | Settlement logic: SELL validation, share reservation, SELL accounting, opening capital, lifecycle, UNIQUE(decision_ref) | `test_settlement.py` | **Passed on the SQLite fallback**; not run on PostgreSQL |
 | Denormalization invariants (§6) | `test_denormalization_invariants.py` | **Passed on the SQLite fallback**; not run on PostgreSQL |
 | Concurrent BUY and SELL reservation under `FOR UPDATE`; `ck_holding_solvency` by name; exact-decimal money; SIGKILL rollback (2 tests) | `test_invariants.py`, `test_backend_authority.py`, `test_crash_recovery.py` | **Not run**: no PostgreSQL |
-| Migration 002 itself (DO blocks, backfill, duplicate-decision_ref guard) | only exercised by the PG tests above | **Not run**: no PostgreSQL |
+| Migrations 002 and 003 themselves (DO blocks, backfill, duplicate guards) | only exercised by the PG tests above | **Not run**: no PostgreSQL |
