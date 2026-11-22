@@ -50,15 +50,15 @@ def db_migrate() -> None:
     # 1. PostgreSQL migrations
     pg = PostgresStorage()
     try:
-        pg_migration_path = Path("migrations/postgres/001_initial_schema.sql")
+        pg_migration_path = Path("migrations/postgres")
         if not pg_migration_path.exists():
             console.print(f"[red]Error:[/red] Missing {pg_migration_path}")
             raise typer.Exit(1)
 
-        pg.run_migrations(str(pg_migration_path))
+        applied = pg.run_migrations(str(pg_migration_path))
         pg.seed_reference_data()
-        mode_str = " [yellow](SQLite fallback)[/yellow]" if pg.is_sqlite_fallback else ""
-        console.print(f"[green][OK] PostgreSQL:{mode_str}[/green] Initial schema, constraints, and reference seeds applied.")
+        mode_str = " [bold yellow](NON-AUTHORITATIVE SQLite fallback: float storage, no row locks)[/bold yellow]" if pg.is_sqlite_fallback else ""
+        console.print(f"[green][OK] PostgreSQL:{mode_str}[/green] Migrations applied: {', '.join(applied) or 'none pending'}; reference seeds applied.")
     except Exception as e:
         console.print(f"[bold red]PostgreSQL Migration Failed:[/bold red] {e}")
         console.print("[yellow]Ensure PostgreSQL is running on port 5432 (or via Docker Compose: `docker compose up -d postgres`)[/yellow]")
@@ -68,7 +68,7 @@ def db_migrate() -> None:
     mongo = MongoStorage()
     try:
         mongo.run_migrations()
-        mode_str = " [yellow](SQLite fallback)[/yellow]" if mongo.is_sqlite_fallback else ""
+        mode_str = " [bold yellow](NON-AUTHORITATIVE SQLite fallback)[/bold yellow]" if mongo.is_sqlite_fallback else ""
         console.print(f"[green][OK] MongoDB:{mode_str}[/green] Time-series collection 'price_history' and $jsonSchema validators configured.")
 
         # If baseline_ticks dataset is empty, auto-seed default baseline ticks & strategies for immediate out-of-the-box readiness
@@ -99,7 +99,7 @@ def db_migrate() -> None:
         console.print("[yellow]Ensure MongoDB is running on port 27017 (or via Docker Compose: `docker compose up -d mongo`)[/yellow]")
         raise typer.Exit(1)
 
-    pg_desc = "PostgreSQL" + (" (SQLite fallback: data/glassledger_ledger.db)" if pg.is_sqlite_fallback else " (Port 5432)")
+    pg_desc = "PostgreSQL" + (" (NON-AUTHORITATIVE SQLite fallback: float storage, no row locks)" if pg.is_sqlite_fallback else " (Port 5432)")
     mongo_desc = "MongoDB" + (" (SQLite fallback: data/glassledger_telemetry.db)" if mongo.is_sqlite_fallback else " (Port 27017)")
 
     console.print(
@@ -194,6 +194,7 @@ def run(
         table.add_row("Decisions Logged (MongoDB)", str(summary["decisions_logged"]))
         table.add_row("Orders Placed (PostgreSQL)", str(summary["orders_placed"]))
         table.add_row("Fills Settled (PostgreSQL)", str(summary["fills_settled"]))
+        table.add_row("Orders Rejected (PostgreSQL)", str(summary.get("orders_rejected", 0)))
         table.add_row("Final Wallet Balance", f"₹{summary['wallet_balance']}")
         table.add_row("Reserved Cash", f"₹{summary['reserved_cash']}")
         table.add_row("Double-Entry Total Debit", f"₹{summary['total_debit']}")

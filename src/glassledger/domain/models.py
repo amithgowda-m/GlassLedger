@@ -38,6 +38,8 @@ class OrderStatus(StrEnum):
 class JournalAccount(StrEnum):
     CASH = "CASH"
     SECURITIES_AT_COST = "SECURITIES_AT_COST"
+    REALIZED_GAIN_LOSS = "REALIZED_GAIN_LOSS"
+    OWNER_EQUITY = "OWNER_EQUITY"
     FEE_EXPENSE = "FEE_EXPENSE"
     BROKERAGE_EXPENSE = "BROKERAGE_EXPENSE"
     STT_EXPENSE = "STT_EXPENSE"
@@ -152,8 +154,10 @@ class FillExecution(BaseDomainModel):
 
 
 class JournalPosting(BaseDomainModel):
+    """One journal line. It originates from exactly one of a fill or a capital event."""
     entry_id: str
-    fill_id: str
+    fill_id: Optional[str] = None
+    capital_event_id: Optional[str] = None
     ledger_account: JournalAccount
     debit: Decimal = Decimal("0.0000")
     credit: Decimal = Decimal("0.0000")

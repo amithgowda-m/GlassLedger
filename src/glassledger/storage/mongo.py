@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+import logging
 from pathlib import Path
 import pickle
 import re
@@ -13,6 +14,23 @@ from pymongo.database import Database
 
 from glassledger.config import settings
 from glassledger.domain.models import DecisionSnapshot, StrategyConfig, Tick
+
+
+log = logging.getLogger("glassledger.storage.mongo")
+_FALLBACK_WARNED = False
+
+
+def _warn_fallback_once(path: Path) -> None:
+    global _FALLBACK_WARNED
+    if _FALLBACK_WARNED:
+        return
+    _FALLBACK_WARNED = True
+    log.warning(
+        "GLASSLEDGER TELEMETRY IS RUNNING ON THE NON-AUTHORITATIVE SQLITE FALLBACK (%s): "
+        "MongoDB is unreachable; documents are pickled into SQLite with no $jsonSchema validation "
+        "and no unique indexes. Use it for demos only.",
+        path,
+    )
 
 
 def _to_bson(val: Any) -> Any:
@@ -247,7 +265,7 @@ class MongoStorage:
         self._client: Optional[Any] = None
         self._db: Optional[Any] = None
         self._probed: Optional[bool] = None
-        self._sqlite_path = Path("data/glassledger_telemetry.db")
+        self._sqlite_path = Path(settings.sqlite_data_dir) / "glassledger_telemetry.db"
 
     @property
     def is_sqlite_fallback(self) -> bool:
@@ -282,6 +300,7 @@ class MongoStorage:
                 self._client = MongoClient(self.uri, serverSelectionTimeoutMS=5000)
                 self._db = self._client[self.db_name]
         else:
+            _warn_fallback_once(self._sqlite_path)
             self._sqlite_path.parent.mkdir(parents=True, exist_ok=True)
             if self._client is None:
                 self._client = FallbackMongoClient(str(self._sqlite_path))

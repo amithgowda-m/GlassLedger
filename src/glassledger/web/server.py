@@ -101,13 +101,13 @@ def get_system_status() -> dict[str, Any]:
     
     # 1. PostgreSQL status
     pg_info: dict[str, Any] = {
-        "engine": "PostgreSQL 16.8 (Native ACID Financial Ledger)" if not active_pg.is_sqlite_fallback else "SQLite 3 (Fallback)",
+        "engine": "PostgreSQL (authoritative ACID ledger)" if not active_pg.is_sqlite_fallback else "SQLite 3 (NON-AUTHORITATIVE fallback: float storage, no row locks)",
         "is_postgres": not active_pg.is_sqlite_fallback,
         "host": settings.postgres_host,
         "port": settings.postgres_port,
         "database": settings.postgres_db,
         "driver": "psycopg3 (ConnectionPool)" if not active_pg.is_sqlite_fallback else "sqlite3",
-        "concurrency_control": "Row-level locking via SELECT ... FOR UPDATE",
+        "concurrency_control": "Row-level locking via SELECT ... FOR UPDATE" if not active_pg.is_sqlite_fallback else "NONE (SQLite fallback has no row locks)",
         "invariants_enforced": [
             "CHECK (wallet_balance >= 0)",
             "CHECK (reserved_cash <= wallet_balance)",
@@ -115,6 +115,9 @@ def get_system_status() -> dict[str, Any]:
             "CHECK (reserved_quantity <= quantity)",
             "Double-entry balanced debits == credits",
             "Fill idempotency on fill_id",
+            "UNIQUE (orders.decision_ref)",
+            "journal_entries.ledger_account -> ledger_accounts (FK)",
+            "Each journal line from exactly one fill or capital event",
         ],
     }
 
@@ -200,7 +203,7 @@ def get_overview() -> dict[str, Any]:
             "orders": order_count,
             "fills": fill_count,
         },
-        "db_mode": "PostgreSQL 16.8 (ACID Ledger via psycopg3)" if not active_pg.is_sqlite_fallback else "SQLite (ACID Fallback)",
+        "db_mode": "PostgreSQL (ACID ledger via psycopg3)" if not active_pg.is_sqlite_fallback else "SQLite (NON-AUTHORITATIVE fallback)",
     }
 
 
@@ -266,7 +269,7 @@ def inspect_databases() -> dict[str, Any]:
     relational_data: dict[str, Any] = {}
     with active_pg.get_connection_context() as conn:
         cur = conn.cursor()
-        tables = ["investors", "stocks", "holdings", "orders", "fills", "journal_entries"]
+        tables = ["investors", "stocks", "holdings", "orders", "fills", "journal_entries", "ledger_accounts", "capital_events"]
         for tbl in tables:
             cur.execute(f"SELECT COUNT(*) FROM {tbl}")
             cnt = _get_val(cur.fetchone())
@@ -300,9 +303,9 @@ def inspect_databases() -> dict[str, Any]:
     return {
         "relational_store": {
             "engine": (
-                "PostgreSQL 16.8 (ACID Ledger via psycopg3)"
+                "PostgreSQL (ACID ledger via psycopg3)"
                 if not active_pg.is_sqlite_fallback
-                else "SQLite 3 (ACID Fallback)"
+                else "SQLite 3 (NON-AUTHORITATIVE fallback: float storage, no row locks)"
             ),
             "tables": relational_data,
         },
@@ -522,31 +525,19 @@ def execute_virtual_trade(req: TradeExecuteRequest) -> dict[str, Any]:
     )
     mongo.log_decision(decision)
 
-    # 2. Broker execution with FR-13 realistic fee model
+    # 2. SECOND: intake -> broker (FR-13 fee model) -> settlement in one transaction.
     broker_adapter = get_broker(req.broker)
-    fill = broker_adapter.submit_order(order)
-
-    # 3. SECOND: PostgreSQL Atomic Reservation and Balanced Settlement
-    fill_payload = {
-        "fill_id": fill.fill_id,
-        "order_id": fill.order_id,
-        "quantity": fill.quantity,
-        "price": str(fill.price),
-        "fee": str(fill.fee),
-        "fee_breakdown": fill.fee_breakdown,
-    }
-
     try:
-        with active_pg.get_connection_context() as conn:
-            if hasattr(conn, "transaction"):
-                with conn.transaction():
-                    active_pg.submit_order_intent(conn, order)
-                    settlement_res = active_pg.process_fill(conn, fill_payload)
-            else:
-                active_pg.submit_order_intent(conn, order)
-                settlement_res = active_pg.process_fill(conn, fill_payload)
+        result = active_pg.execute_order(order, broker_adapter)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Settlement failed: {e}")
+    if result["status"] != "FILLED" or result.get("fill") is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Order {order_id} {result['status']}: {result.get('reason', 'already processed')}",
+        )
+    fill = result["fill"]
+    settlement_res = "APPLIED"
 
     # 4. Mark-to-market price update
     active_pg.update_stock_price(clean_sym, fill.price)
