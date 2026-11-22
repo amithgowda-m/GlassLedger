@@ -67,8 +67,10 @@ def test_virtual_trade_execution_updates_wallet():
     initial_cash = Decimal(initial_summary["portfolio"]["wallet_balance"])
 
     # Place a virtual BUY trade for 5 AAPL at 150.0000
-    order_id = "ord_virt_trade_01"
-    fill_id = "fill_virt_trade_01"
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    order_id = f"ord_virt_trade_{uid}"
+    fill_id = f"fill_virt_trade_{uid}"
     order = OrderIntent(
         order_id=order_id,
         investor_id=1,

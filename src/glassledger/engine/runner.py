@@ -1,4 +1,5 @@
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Optional
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
@@ -55,7 +56,19 @@ class Runner:
         strategy = get_strategy(strategy_type)
         ticks = self.mongo.get_ticks(dataset_name)
         if not ticks:
-            raise ValueError(f"No ticks found in MongoDB for dataset: '{dataset_name}'")
+            # Auto-bootstrap baseline_ticks if synthetic_ticks.csv exists
+            synth_path = Path("data/synthetic_ticks.csv")
+            if dataset_name in ("baseline_ticks", "default") and synth_path.exists():
+                loaded_ticks = Sequencer.load_csv(str(synth_path))
+                self.mongo.save_ticks(loaded_ticks, dataset_name=dataset_name)
+                ticks = self.mongo.get_ticks(dataset_name)
+
+        if not ticks:
+            raise ValueError(
+                f"No ticks found in MongoDB for dataset: '{dataset_name}'. "
+                f"Seed default ticks with `glassledger db migrate` or import via "
+                f"`glassledger dataset import data/synthetic_ticks.csv --name {dataset_name}`."
+            )
 
         state: dict[str, Any] = {}
         ticks_evaluated = 0
