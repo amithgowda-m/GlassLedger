@@ -622,12 +622,14 @@ No. It has the same tables, FKs and unique keys, but money is stored as `REAL` a
 
 ## 9. Verification status
 
-Two runs on the development machine (Windows 11, MongoDB running in both):
+Measured on the development machine (Windows 11) against **PostgreSQL 18.7** (Windows service, standard install with the real `uuid-ossp` extension) and **MongoDB 8.2**:
 
-- **PostgreSQL run:** a throwaway local **PostgreSQL 16.2** cluster (from the `pgserver` wheel) on 127.0.0.1:5432. `pytest -rs` gave **106 passed, 0 skipped**, repeated twice in a row.
-- **Fallback run** (PostgreSQL stopped): **90 passed, 16 skipped**. The skips are exactly the PostgreSQL-only tests.
+- `pytest -rs`: **112 passed, 0 skipped, 0 warnings**. Zero skips means every PostgreSQL-only test below ran against the live server. Tests run in the isolated `glassledger_test` databases, behind a name guard that refuses to drop anything else.
+- **Demo run `demo_002`** (`rsi_v1` on `baseline_ticks`): 2,000 ticks evaluated, 40 orders placed, 40 fills settled, 0 rejected, reserved cash ₹0.0000, total debits = total credits. `glassledger reconcile --run-id demo_002` passes with 40 consistent chains and no orphans.
+- **`baseline_ticks`** holds exactly 2,000 distinct ticks. An earlier double import had stored every tick twice; the extra copies were removed, and `save_ticks` now skips ticks a dataset already contains, so re-importing inserts 0.
+- **SQLite fallback:** the last fallback run (PostgreSQL stopped) gave 90 passed, 16 skipped, where the skips are exactly the PostgreSQL-only tests. It was measured before the 6 newest tests (tick de-duplication, capital-line tracing) were added, and has not been re-run since.
 
-| Check | Where | PostgreSQL 16.2 | SQLite fallback |
+| Check | Where | PostgreSQL 18.7 | SQLite fallback |
 |---|---|---|---|
 | Migrations declare the documented tables, named CHECKs, indexes, chart of accounts, unique keys; no float types | static, `test_schema_normalization.py` | Passed | Passed |
 | SQLite fallback mirrors tables, FKs, single and composite unique keys, chart of accounts | `test_schema_normalization.py` | Passed | Passed |
@@ -639,13 +641,12 @@ Two runs on the development machine (Windows 11, MongoDB running in both):
 | Exact-decimal money (0.1 / 0.2 amounts, plain `==`) | `test_backend_authority.py` | **Passed** | skipped |
 | SIGKILL mid-transaction rollback; SIGKILL mid-cancel keeps reservation | `test_crash_recovery.py` | **Passed** | skipped |
 | Migration 002 on a legacy-shaped DB: duplicate guard stops 002 without deleting rows; per-file transactions; backfill makes CASH == wallet; journal balanced; re-run is a no-op | `test_migrations_pg.py` | **Passed** | skipped |
+| Tick import is idempotent per (dataset, event_id) | `test_tick_storage.py` | **Passed** | not re-run |
+| Every journal line traces: trade lines to fill/order, capital lines to their capital event | `test_tracer.py` | **Passed** | not re-run |
 
-Caveats about the PostgreSQL run:
-- **Version.** It was 16.2, not 16.8. Docker's `postgres:16-alpine` was not available on this machine.
-- **uuid-ossp stub.** The `pgserver` build ships without contrib extensions, so `001`'s `CREATE EXTENSION "uuid-ossp"` was satisfied by an **empty stub** installed into the throwaway cluster only. No GlassLedger code calls any uuid-ossp function (all ids are application-generated VARCHARs), so behaviour is unaffected. Standard PostgreSQL installs ship the real extension.
-- **Authentication.** The project's local `.env` has a password-less `POSTGRES_URI`, so the run supplied the password via libpq's `PGPASSWORD`.
-
-Bugs found only by the first real PostgreSQL run, and fixed:
-- `PortfolioManager` indexed a psycopg dict row by position (`row[0]`), raising `KeyError` on PostgreSQL. It now reads by column name.
-- `run_migrations` ran all files inside one implicit transaction, so a failure in 002 also rolled back 001. Each file now commits independently, as documented.
+Bugs found by running against real PostgreSQL, all fixed:
+- `PortfolioManager` indexed a psycopg dict row by position (`row[0]`), raising `KeyError`. It now reads by column name.
+- `run_migrations` ran every file inside one implicit transaction, so a failure in 002 also rolled back 001. Each file now commits independently.
+- Each `PostgresStorage` / `MongoStorage` opened its own connection pool or client and never closed it. There is now one shared pool and one client per URI per process, closed at exit.
+- Opening-balance journal lines were reported as "not found" by the tracer. They now trace to their capital event.
 - The SIGKILL mid-cancel test's child script had a string-escaping error.

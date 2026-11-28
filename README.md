@@ -113,10 +113,10 @@ Use it for demos only. A fallback file from an older schema version is renamed t
 
 ### 3. Run a Strategy Simulation
 ```bash
-glassledger run --dataset baseline_ticks --strategy rsi_v1 --run-id run_001
-glassledger replay run_001 --verify
-glassledger trace j_csh_fill_ord_run_001_000015
-glassledger reconcile
+glassledger run --dataset baseline_ticks --strategy rsi_v1 --run-id demo_002
+glassledger replay demo_002 --verify
+glassledger trace <entry_id>          # copy an entry id from the Ledger tab
+glassledger reconcile --run-id demo_002
 ```
 
 ### 4. Launch the Web Console
@@ -151,7 +151,7 @@ What the suite covers:
 
 Without PostgreSQL, the settlement and invariant tests still run on the SQLite fallback, but there they verify logic only, not decimal precision or locking.
 
-Last verified on a live PostgreSQL 16.2: **106 passed, 0 skipped**. Details and caveats are in [`docs/normalization.md` §9](docs/normalization.md#9-verification-status). If your `POSTGRES_URI` has no password, set `PGPASSWORD`; the test user needs `CREATEDB`.
+Last verified on PostgreSQL 18.7 and MongoDB 8.2: **112 passed, 0 skipped, 0 warnings**. The demo run `demo_002` (2,000 ticks, 40 fills, debits = credits) reconciles cleanly. Details are in [`docs/normalization.md` §9](docs/normalization.md#9-verification-status). The test database user needs the `CREATEDB` privilege.
 
 ---
 
