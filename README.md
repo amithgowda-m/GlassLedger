@@ -46,6 +46,17 @@ Schema changes live in `migrations/postgres/` (`001_initial_schema.sql`, `002_se
 
 ---
 
+## Real market data (local candle files)
+
+`scripts/convert_candles.py` turns your own candle data (`data/candles/`, read-only, git-ignored, not included in this repository) into GlassLedger tick CSVs:
+- 15m bars are rebuilt from 1m and stamped at bar **end** in UTC;
+- prices are exact decimals;
+- special sessions and split/bonus ranges are excluded using an optional data-quality report in `data/reports/`.
+
+Example: RELIANCE 2025 gives 6,175 ticks. Rule details, verification results and data caveats are in [`docs/candle_import.md`](docs/candle_import.md).
+
+---
+
 ## Architecture
 
 ```

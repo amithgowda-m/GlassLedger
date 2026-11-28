@@ -66,7 +66,8 @@ def test_002_guard_backfill_and_per_file_transactions(legacy_uri):
             assert c.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"] == 2  # nothing deleted
             c.execute("UPDATE orders SET decision_ref = 'dec_dup_2' WHERE order_id = 'o2'")
 
-        assert pg.run_migrations() == ["002_settlement_correctness.sql", "003_journal_line_uniqueness.sql"]
+        later = sorted(f.name for f in Path("migrations/postgres").glob("*.sql"))[1:]
+        assert pg.run_migrations() == later  # 002 onward, now that the duplicate is resolved
         assert pg.run_migrations() == []
 
         with psycopg.connect(legacy_uri, row_factory=dict_row) as c:

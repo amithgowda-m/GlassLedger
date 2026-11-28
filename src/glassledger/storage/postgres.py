@@ -36,7 +36,7 @@ MIGRATIONS_DIR = Path("migrations/postgres")
 MONEY_Q = Decimal("0.0001")
 
 # Bump when the hand-mirrored SQLite DDL below changes incompatibly.
-SQLITE_SCHEMA_VERSION = 3
+SQLITE_SCHEMA_VERSION = 4
 
 SQLITE_DDL = [
     """
@@ -57,7 +57,8 @@ SQLITE_DDL = [
         symbol TEXT PRIMARY KEY,
         company_name TEXT NOT NULL,
         sector TEXT NOT NULL,
-        current_price NUMERIC(18, 4) NOT NULL CHECK (current_price > 0)
+        current_price NUMERIC(18, 4) NOT NULL CHECK (current_price > 0),
+        exchange TEXT CHECK (exchange IS NULL OR exchange IN ('NSE', 'BSE'))
     )
     """,
     """
@@ -523,6 +524,30 @@ class PostgresStorage:
             (new_balance, investor_id),
         )
         return event_id
+
+    EXCHANGES = ("NSE", "BSE")
+
+    def register_stock(
+        self, symbol: str, company_name: str, exchange: str, sector: str, current_price: Decimal
+    ) -> bool:
+        """
+        Adds a stock for imported market data. Insert-only: an existing row (including its
+        company name, sector, price and exchange) is never modified. Returns True if inserted.
+        """
+        if exchange not in self.EXCHANGES:
+            raise ValueError(f"exchange must be one of {self.EXCHANGES}, got {exchange!r}")
+        if current_price <= 0:
+            raise ValueError("current_price must be positive")
+        with self.get_connection_context() as conn:
+            with _Cursor(conn) as c:
+                if c.run("SELECT 1 FROM stocks WHERE symbol = %s", (symbol,)).one():
+                    return False
+                c.run(
+                    "INSERT INTO stocks (symbol, company_name, sector, current_price, exchange) "
+                    "VALUES (%s, %s, %s, %s, %s) ON CONFLICT (symbol) DO NOTHING",
+                    (symbol, company_name, sector, current_price, exchange),
+                )
+        return True
 
     @staticmethod
     def _seed_stocks(c: _Cursor) -> None:

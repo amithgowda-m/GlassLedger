@@ -37,6 +37,27 @@ db_app = typer.Typer(help="Database schema migrations and initialization")
 dataset_app = typer.Typer(help="Dataset management and tick ingestion")
 app.add_typer(db_app, name="db")
 app.add_typer(dataset_app, name="dataset")
+stocks_app = typer.Typer(help="Reference data for traded symbols")
+app.add_typer(stocks_app, name="stocks")
+
+
+@stocks_app.command("add")
+def stocks_add(
+    symbol: str = typer.Argument(..., help="Trading symbol, e.g. RELIANCE"),
+    company: str = typer.Option(..., "--company", help="Company name"),
+    exchange: str = typer.Option("NSE", "--exchange", help="NSE or BSE"),
+    sector: str = typer.Option("Equities", "--sector"),
+    price: str = typer.Option(..., "--price", help="Initial current_price as a decimal string"),
+) -> None:
+    """Registers a stock for imported market data. Insert-only: existing rows are never modified."""
+    from decimal import Decimal
+
+    pg = PostgresStorage()
+    inserted = pg.register_stock(symbol.upper(), company, exchange.upper(), sector, Decimal(price))
+    if inserted:
+        console.print(f"[green][OK][/green] Added {symbol.upper()} ({company}, {exchange.upper()}).")
+    else:
+        console.print(f"[yellow]{symbol.upper()} already exists in stocks; left unchanged.[/yellow]")
 
 console = Console(legacy_windows=False)
 
