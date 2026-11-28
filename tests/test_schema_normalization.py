@@ -62,6 +62,7 @@ EXPECTED_NAMED_CHECKS = {
     "journal_entries": {"ck_debit_or_credit", "ck_journal_single_source"},
     "ledger_accounts": {"ck_account_type"},
     "capital_events": {"ck_capital_event_type", "ck_capital_amount_nonzero", "ck_opening_positive"},
+    "stocks": {"ck_stock_exchange"},
 }
 
 EXPECTED_INDEXES = {
@@ -260,9 +261,10 @@ def migration_sql() -> str:
     return "\n".join(m.read_text(encoding="utf-8") for m in MIGRATIONS)
 
 
-def test_migration_files_are_001_to_003():
+def test_migration_files_are_001_to_004():
     assert [m.name for m in MIGRATIONS] == [
         "001_initial_schema.sql", "002_settlement_correctness.sql", "003_journal_line_uniqueness.sql",
+        "004_stock_exchange.sql",
     ]
 
 
@@ -343,3 +345,17 @@ def test_sqlite_fallback_has_same_unique_keys(sqlite_fallback):
 
 def test_sqlite_fallback_has_same_chart_of_accounts(sqlite_fallback):
     assert dict(sqlite_fallback.execute("SELECT account_code, account_type FROM ledger_accounts")) == EXPECTED_ACCOUNTS
+
+
+@requires_pg
+def test_pg_stock_exchange_column_is_nullable_and_constrained():
+    col = _rows(
+        "SELECT data_type, is_nullable FROM information_schema.columns "
+        "WHERE table_schema = 'public' AND table_name = 'stocks' AND column_name = 'exchange'"
+    )
+    assert col == [{"data_type": "character varying", "is_nullable": "YES"}]
+
+
+def test_sqlite_fallback_stocks_has_exchange_column(sqlite_fallback):
+    cols = [r[1] for r in sqlite_fallback.execute("PRAGMA table_info(stocks)")]
+    assert "exchange" in cols

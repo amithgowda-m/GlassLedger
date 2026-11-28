@@ -11,6 +11,12 @@ build/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+data/*.legacy-*.db*
+
+# Your own local candle data and reports; never commit (personal use, large)
+data/candles/
+data/reports/
+data/imports/
 pgdata/
 pgsql/
 mongodata/

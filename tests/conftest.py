@@ -16,7 +16,8 @@ import tempfile
 
 import pytest
 
-TEST_DB = "glassledger_test"
+# Override with GLASSLEDGER_TEST_DB (must still end in _test; see tests/_db_guard.py).
+TEST_DB = os.environ.get("GLASSLEDGER_TEST_DB", "glassledger_test")
 
 
 def _port_open(port: int) -> bool:
@@ -52,7 +53,13 @@ if PG_LIVE:
 
     with psycopg.connect(_admin_uri, autocommit=True) as admin:
         assert_safe_to_drop(TEST_DB, dev_db=_dev_pg_db)
-        admin.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
+        try:
+            admin.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
+        except psycopg.errors.InsufficientPrivilege as e:
+            raise RuntimeError(
+                f"Cannot reset test database {TEST_DB!r}: another session (often pgAdmin, connected as a "
+                f"superuser) has it open. Disconnect that session, or run with GLASSLEDGER_TEST_DB=<name>_test."
+            ) from e
         admin.execute(f"CREATE DATABASE {TEST_DB}")
 
 if MONGO_LIVE:
