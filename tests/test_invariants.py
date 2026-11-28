@@ -170,7 +170,7 @@ def test_real_postgresql_concurrent_for_update_solvency():
     """
     Gold-Standard DBMS Concurrency Verification:
     Spawns 10 concurrent OS worker threads against PostgreSQL.
-    Investor 99 starts with wallet_balance = 2000.0000 and reserved_cash = 0.0000.
+    A fresh investor starts with journaled wallet_balance = 2000.0000 and reserved_cash = 0.0000.
     10 threads simultaneously call submit_order_intent() each requesting 1000.0000.
     Uses PostgreSQL row-level locks: SELECT ... FOR UPDATE.
     Verifies that exactly 2 orders succeed and 8 fail with SolvencyViolationError.
@@ -181,25 +181,15 @@ def test_real_postgresql_concurrent_for_update_solvency():
     from glassledger.domain.models import OrderIntent, OrderSide, OrderStatus
     from glassledger.storage.postgres import PostgresStorage
 
+    import uuid as _uuid
+
     pg = PostgresStorage()
-    with pg.get_connection_context() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO investors (investor_id, name, email, wallet_balance, reserved_cash)
-            VALUES (99, 'Concurrency Stress Investor', 'concurrency@glassledger.io', 2000.0000, 0.0000)
-            ON CONFLICT (investor_id) DO UPDATE 
-            SET wallet_balance = 2000.0000, reserved_cash = 0.0000;
-            """
-        )
-        cur.execute(
-            """
-            INSERT INTO stocks (symbol, company_name, sector, current_price)
-            VALUES ('RELIANCE', 'Reliance Industries Ltd.', 'Energy', 2500.0000)
-            ON CONFLICT (symbol) DO NOTHING;
-            """
-        )
-        cur.close()
+    investor_id = pg.create_investor(
+        name="Concurrency Stress Investor",
+        email=f"concurrency_{_uuid.uuid4().hex[:8]}@glassledger.io",
+        opening_balance=Decimal("2000.0000"),
+    )
+    run_tag = _uuid.uuid4().hex[:8]
 
     accepted = 0
     rejected = 0
@@ -209,15 +199,15 @@ def test_real_postgresql_concurrent_for_update_solvency():
     def run_worker(thread_idx: int):
         nonlocal accepted, rejected
         order = OrderIntent(
-            order_id=f"ord_conc_{thread_idx:02d}",
-            investor_id=99,
+            order_id=f"ord_conc_{run_tag}_{thread_idx:02d}",
+            investor_id=investor_id,
             symbol="RELIANCE",
             side=OrderSide.BUY,
             quantity=1,
             price=Decimal("1000.0000"),
             reserved_amount=Decimal("1000.0000"),
             status=OrderStatus.PENDING,
-            decision_ref=f"dec_conc_{thread_idx:02d}",
+            decision_ref=f"dec_conc_{run_tag}_{thread_idx:02d}",
             created_at=datetime.now(timezone.utc),
         )
         try:
@@ -241,7 +231,82 @@ def test_real_postgresql_concurrent_for_update_solvency():
     assert accepted == 2, f"Expected exactly 2 accepted orders, got {accepted}"
     assert rejected == 8, f"Expected exactly 8 rejected orders, got {rejected}"
 
-    inv = pg.get_investor_account(99)
+    inv = pg.get_investor_account(investor_id)
     assert Decimal(str(inv["wallet_balance"])) == Decimal("2000.0000")
     assert Decimal(str(inv["reserved_cash"])) == Decimal("2000.0000")
 
+
+
+@pytest.mark.skipif(
+    PostgresStorage().is_sqlite_fallback,
+    reason="Requires live PostgreSQL daemon on port 5432 for SELECT ... FOR UPDATE row locks",
+)
+def test_real_postgresql_concurrent_sell_share_reservation():
+    """
+    10 threads concurrently SELL 3 shares each against a holding of 10 shares.
+    Holding rows are locked with SELECT ... FOR UPDATE, so exactly 3 SELLs reserve
+    shares (9 <= 10) and 7 are refused; ck_holding_solvency is never exceeded.
+    """
+    import uuid
+    from glassledger.domain.invariants import InsufficientHoldingsError
+    from glassledger.domain.models import OrderIntent, OrderSide
+    from tests.test_settlement import new_investor, trade
+
+    pg = PostgresStorage()
+    inv = new_investor(pg)
+    trade(pg, inv, OrderSide.BUY, 10, "1500.0000")
+
+    accepted, rejected, errors = 0, 0, []
+    import threading
+    count_lock = threading.Lock()
+
+    def sell_worker(idx: int):
+        nonlocal accepted, rejected
+        uid = uuid.uuid4().hex[:8]
+        order = OrderIntent(
+            order_id=f"ord_csell_{uid}", investor_id=inv, symbol="INFY", side=OrderSide.SELL,
+            quantity=3, price=Decimal("1500.0000"), reserved_amount=Decimal("0"), decision_ref=f"dec_csell_{uid}",
+        )
+        try:
+            with pg.get_connection_context() as conn:
+                with conn.transaction():
+                    pg.submit_order_intent(conn, order)
+            with count_lock:
+                accepted += 1
+        except InsufficientHoldingsError:
+            with count_lock:
+                rejected += 1
+        except Exception as e:  # pragma: no cover - surfaced by the assertion below
+            with count_lock:
+                errors.append(e)
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for f in [executor.submit(sell_worker, i) for i in range(10)]:
+            f.result()
+
+    assert not errors, errors
+    assert (accepted, rejected) == (3, 7)
+    rows = pg._query(
+        "SELECT quantity, reserved_quantity FROM holdings WHERE investor_id = %s AND symbol = 'INFY'", (inv,)
+    )
+    assert (rows[0]["quantity"], rows[0]["reserved_quantity"]) == (10, 9)
+
+
+@pytest.mark.skipif(
+    PostgresStorage().is_sqlite_fallback,
+    reason="Requires live PostgreSQL to assert the named constraint ck_holding_solvency",
+)
+def test_real_postgresql_ck_holding_solvency_fires():
+    import psycopg
+    from glassledger.domain.models import OrderSide
+    from tests.test_settlement import new_investor, trade
+
+    pg = PostgresStorage()
+    inv = new_investor(pg)
+    trade(pg, inv, OrderSide.BUY, 10, "1500.0000")
+    with pytest.raises(psycopg.errors.CheckViolation) as exc:
+        with pg.get_connection_context() as conn:
+            conn.execute(
+                "UPDATE holdings SET reserved_quantity = quantity + 1 WHERE investor_id = %s AND symbol = 'INFY'", (inv,)
+            )
+    assert exc.value.diag.constraint_name == "ck_holding_solvency"

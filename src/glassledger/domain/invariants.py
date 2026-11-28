@@ -13,6 +13,21 @@ class SolvencyViolationError(InvariantBreachError):
     pass
 
 
+class InsufficientHoldingsError(SolvencyViolationError):
+    """Raised when a SELL exceeds the investor's available (unreserved) shares."""
+    pass
+
+
+class OrderStateError(InvariantBreachError):
+    """Raised on an illegal order lifecycle transition (e.g. filling a CANCELED order)."""
+    pass
+
+
+class LedgerResetRefusedError(InvariantBreachError):
+    """Raised when a reset/seed would orphan open orders or break ledger invariants."""
+    pass
+
+
 class UnbalancedJournalError(InvariantBreachError):
     """Raised when total debits do not match total credits in journal entries."""
     pass

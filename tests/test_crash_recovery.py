@@ -108,6 +108,8 @@ with pg.get_connection_context() as conn:
         # Execute brutal OS-level kill (SIGKILL on POSIX, TerminateProcess on Windows)
         proc.kill()
         proc.wait(timeout=5)
+        proc.stdout.close()
+        proc.stderr.close()
     except Exception:
         proc.kill()
         raise
@@ -131,3 +133,54 @@ with pg.get_connection_context() as conn:
     assert post_crash_balance == initial_balance, f"Balance leaked after SIGKILL: {post_crash_balance} != {initial_balance}"
     # 2. Uncommitted order was never persisted
     assert order_count == 0, f"Orphaned order survived SIGKILL!"
+
+
+@pytest.mark.skipif(
+    PostgresStorage().is_sqlite_fallback,
+    reason="Requires live PostgreSQL daemon on port 5432 (real session kill + server-side rollback)",
+)
+def test_real_subprocess_sigkill_mid_cancel_keeps_reservation():
+    """
+    A child process cancels a PENDING BUY inside a transaction (reservation released,
+    status set to CANCELED) and is SIGKILLed before commit. PostgreSQL must discard
+    both changes: the order stays PENDING and reserved_cash is unchanged.
+    """
+    import uuid
+    from glassledger.domain.models import OrderSide
+    from tests.test_settlement import account, make_order, new_investor, order_row, submit
+
+    pg = PostgresStorage()
+    inv = new_investor(pg)
+    order = make_order(inv, OrderSide.BUY, 10, "1500.0000")
+    submit(pg, order)
+    before = account(pg, inv)
+
+    worker_script = f"""
+import sys, time
+from glassledger.storage.postgres import PostgresStorage
+pg = PostgresStorage()
+with pg.get_connection_context() as conn:
+    with conn.transaction():
+        pg.cancel_order(conn, "{order.order_id}", "killed mid-cancel")
+        sys.stdout.write("CANCEL_APPLIED_UNCOMMITTED\\n")
+        sys.stdout.flush()
+        time.sleep(30)
+"""
+    proc = subprocess.Popen([sys.executable, "-u", "-c", worker_script],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        line = proc.stdout.readline().strip()
+        if line != "CANCEL_APPLIED_UNCOMMITTED":
+            proc.kill()
+            raise AssertionError(f"child did not reach the kill point: stdout={line!r} stderr={proc.stderr.read()[-2000:]}")
+        proc.kill()
+        proc.wait(timeout=5)
+        proc.stdout.close()
+        proc.stderr.close()
+    except Exception:
+        proc.kill()
+        raise
+    time.sleep(0.5)
+
+    assert account(pg, inv) == before
+    assert order_row(pg, order.order_id)["status"] == "PENDING"

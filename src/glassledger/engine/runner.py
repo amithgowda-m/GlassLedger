@@ -75,6 +75,7 @@ class Runner:
         decisions_logged = 0
         orders_placed = 0
         fills_settled = 0
+        orders_rejected = 0
 
         # Run stream with optional dropped tick injection
         tick_stream = Sequencer.stream_ticks(ticks, drop_seq=drop_seq)
@@ -149,44 +150,17 @@ class Runner:
                         f"INJECTED_FAILURE_AFTER_MONGO_BEFORE_POSTGRES: Simulated crash at seq {seq}"
                     )
 
-                # 3. SECOND: Atomic fund reservation & PostgreSQL settlement
+                # 3. SECOND: intake -> broker -> settlement in one PostgreSQL transaction.
+                #    Insufficient funds/holdings or a broker refusal becomes a REJECTED order
+                #    (reservations released), so the run continues and provenance is kept.
                 if order is not None:
-                    with self.pg.get_connection_context() as conn:
-                        if hasattr(conn, "transaction"):
-                            with conn.transaction():
-                                self.pg.submit_order_intent(conn, order)
-                                orders_placed += 1
-
-                                # Broker execution with realistic fee model
-                                fill = self.broker.submit_order(order)
-
-                                # Atomic ledger settlement & balanced journal postings
-                                fill_payload = {
-                                    "fill_id": fill.fill_id,
-                                    "order_id": fill.order_id,
-                                    "quantity": fill.quantity,
-                                    "price": str(fill.price),
-                                    "fee": str(fill.fee),
-                                    "fee_breakdown": fill.fee_breakdown,
-                                }
-                                res = self.pg.process_fill(conn, fill_payload)
-                                if res == "APPLIED":
-                                    fills_settled += 1
-                        else:
-                            self.pg.submit_order_intent(conn, order)
-                            orders_placed += 1
-                            fill = self.broker.submit_order(order)
-                            fill_payload = {
-                                "fill_id": fill.fill_id,
-                                "order_id": fill.order_id,
-                                "quantity": fill.quantity,
-                                "price": str(fill.price),
-                                "fee": str(fill.fee),
-                                "fee_breakdown": fill.fee_breakdown,
-                            }
-                            res = self.pg.process_fill(conn, fill_payload)
-                            if res == "APPLIED":
-                                fills_settled += 1
+                    result = self.pg.execute_order(order, self.broker)
+                    if not result.get("replayed"):
+                        orders_placed += 1
+                        if result["status"] == "FILLED":
+                            fills_settled += 1
+                        elif result["status"] == "REJECTED":
+                            orders_rejected += 1
 
                 progress.update(task, advance=1)
 
@@ -202,6 +176,7 @@ class Runner:
             "decisions_logged": decisions_logged,
             "orders_placed": orders_placed,
             "fills_settled": fills_settled,
+            "orders_rejected": orders_rejected,
             "wallet_balance": str(investor.get("wallet_balance", "0.0000")),
             "reserved_cash": str(investor.get("reserved_cash", "0.0000")),
             "total_debit": str(journal.get("total_debit", "0.0000")),

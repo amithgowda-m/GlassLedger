@@ -76,6 +76,10 @@ def compute_fee_breakdown(
     )
 
 
+class BrokerRejectedError(Exception):
+    """Raised by a broker adapter when it refuses an order; the ledger records it as REJECTED."""
+
+
 @runtime_checkable
 class BrokerAdapter(Protocol):
     """

@@ -181,3 +181,8 @@ def test_reconciler_detects_orphan_order_in_postgres():
     assert report["orphan_orders_count"] >= 1
     orphan_order_ids = [o["order_id"] for o in report["orphan_orders"]]
     assert ghost_order_id in orphan_order_ids
+
+    # Cleanup: release the reservation so investor 1 is left with no open orders.
+    with pg.get_connection_context() as conn:
+        with pg.transaction(conn):
+            pg.cancel_order(conn, ghost_order_id, "test cleanup")

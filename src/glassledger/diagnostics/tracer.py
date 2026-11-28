@@ -51,8 +51,42 @@ class Tracer:
                     (journal_entry_id, journal_entry_id),
                 )
                 row = cur.fetchone()
+
+            capital_row = None
+            if not row:
+                # Owner-capital lines (migration 002) originate from a capital event, not a fill.
+                cur.execute(
+                    f"""
+                    SELECT j.entry_id, j.ledger_account, j.debit, j.credit, j.created_at AS journal_time,
+                           c.event_id, c.investor_id, c.event_type, c.amount, c.created_at AS event_time
+                    FROM journal_entries j
+                    JOIN capital_events c ON c.event_id = j.capital_event_id
+                    WHERE j.entry_id = {placeholder}
+                    """,
+                    (journal_entry_id,),
+                )
+                capital_row = cur.fetchone()
             cur.close()
 
+        if capital_row:
+            c = dict(capital_row)
+            jt, ct = c["journal_time"], c["event_time"]
+            return {
+                "journal": {
+                    "entry_id": c["entry_id"],
+                    "account": c["ledger_account"],
+                    "debit": str(c["debit"]),
+                    "credit": str(c["credit"]),
+                    "created_at": jt.isoformat() if hasattr(jt, "isoformat") else str(jt),
+                },
+                "capital_event": {
+                    "event_id": c["event_id"],
+                    "investor_id": c["investor_id"],
+                    "event_type": c["event_type"],
+                    "amount": str(c["amount"]),
+                    "created_at": ct.isoformat() if hasattr(ct, "isoformat") else str(ct),
+                },
+            }
 
         if not row:
             return {"error": f"Journal entry or execution '{journal_entry_id}' not found in PostgreSQL ledger."}
@@ -102,6 +136,24 @@ class Tracer:
             return
 
         j = trace_result["journal"]
+        if "capital_event" in trace_result:
+            ce = trace_result["capital_event"]
+            root = Tree(
+                f"[bold green]📦 GlassLedger Capital Provenance[/bold green] [dim]({j['entry_id']})[/dim]"
+            )
+            j_node = root.add(
+                f"[bold yellow]💰 Journal Entry:[/bold yellow] [cyan]{j['account']}[/cyan] "
+                f"(Debit: [bold green]₹{j['debit']}[/bold green], Credit: [bold red]₹{j['credit']}[/bold red])"
+            )
+            j_node.add(f"[dim]Timestamp: {j['created_at']}[/dim]")
+            c_node = root.add(
+                f"[bold blue]🏦 Capital Event:[/bold blue] [cyan]{ce['event_id']}[/cyan] "
+                f"({ce['event_type']} of ₹{ce['amount']} for investor {ce['investor_id']})"
+            )
+            c_node.add("[dim]Owner capital movement; no market decision or tick is involved.[/dim]")
+            console.print(Panel(root, title="[bold]Capital Audit Trail (FR-8)[/bold]", border_style="green"))
+            return
+
         f = trace_result["fill"]
         o = trace_result["order"]
         p = trace_result.get("provenance") or {}
@@ -115,21 +167,21 @@ class Tracer:
         # 1. Financial Movement
         j_node = root.add(
             f"[bold yellow]💰 Journal Entry:[/bold yellow] [cyan]{j['account']}[/cyan] "
-            f"(Debit: [bold green]${j['debit']}[/bold green], Credit: [bold red]${j['credit']}[/bold red])"
+            f"(Debit: [bold green]₹{j['debit']}[/bold green], Credit: [bold red]₹{j['credit']}[/bold red])"
         )
         j_node.add(f"[dim]Timestamp: {j['created_at']}[/dim]")
 
         # 2. Execution Fill
         f_node = root.add(
             f"[bold blue]⚡ Execution Fill:[/bold blue] [cyan]{f['fill_id']}[/cyan] "
-            f"({f['quantity']} shares @ [bold green]${f['price']}[/bold green], Fee: ${f['fee']})"
+            f"({f['quantity']} shares @ [bold green]₹{f['price']}[/bold green], Fee: ₹{f['fee']})"
         )
         f_node.add(f"[dim]Settled at: {f['executed_at']}[/dim]")
 
         # 3. Order Intent
         o_node = root.add(
             f"[bold magenta]📋 Order Intent:[/bold magenta] [cyan]{o['order_id']}[/cyan] "
-            f"([bold]{o['side']}[/bold] {f['quantity']} {o['symbol']} @ ${o['price']})"
+            f"([bold]{o['side']}[/bold] {f['quantity']} {o['symbol']} @ ₹{o['price']})"
         )
         o_node.add(f"[dim]Linked Decision Ref: {o['decision_ref']}[/dim]")
 
@@ -146,7 +198,7 @@ class Tracer:
         # 5. Raw Market Tick
         t_node = root.add(
             f"[bold white]⏱️ Originating Market Tick:[/bold white] [cyan]{tick.get('event_id', 'N/A')}[/cyan] "
-            f"({tick.get('symbol', 'N/A')} @ [bold green]${tick.get('price', 'N/A')}[/bold green], "
+            f"({tick.get('symbol', 'N/A')} @ [bold green]₹{tick.get('price', 'N/A')}[/bold green], "
             f"Vol: {tick.get('volume', 'N/A')}, Ts: {tick.get('timestamp', 'N/A')})"
         )
 

@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db_name: str = "glassledger"
 
+    # Directory for the non-authoritative SQLite fallback stores
+    sqlite_data_dir: str = "data"
+
     # Execution & Simulation
     default_broker: str = "paper"
     decimal_places: int = 4

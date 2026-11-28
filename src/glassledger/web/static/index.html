@@ -1063,6 +1063,15 @@ class MomentumStrategy(BaseStrategy):
         }
 
         const j = data.journal;
+        if (data.capital_event) {
+          const ce = data.capital_event;
+          box.innerHTML = `
+            <div><strong>💰 Journal Entry:</strong> ${j.account} (Debit ₹${j.debit}, Credit ₹${j.credit})<br><small>${j.created_at}</small></div>
+            <div style="margin-top:8px;"><strong>🏦 Capital Event:</strong> ${ce.event_id}<br>
+              ${ce.event_type} of ₹${ce.amount} for investor ${ce.investor_id}<br>
+              <small>Owner capital movement; no market decision or tick is involved.</small></div>`;
+          return;
+        }
         const f = data.fill;
         const o = data.order;
         const p = data.provenance || {};
