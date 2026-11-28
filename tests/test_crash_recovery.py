@@ -108,6 +108,8 @@ with pg.get_connection_context() as conn:
         # Execute brutal OS-level kill (SIGKILL on POSIX, TerminateProcess on Windows)
         proc.kill()
         proc.wait(timeout=5)
+        proc.stdout.close()
+        proc.stderr.close()
     except Exception:
         proc.kill()
         raise
@@ -173,6 +175,8 @@ with pg.get_connection_context() as conn:
             raise AssertionError(f"child did not reach the kill point: stdout={line!r} stderr={proc.stderr.read()[-2000:]}")
         proc.kill()
         proc.wait(timeout=5)
+        proc.stdout.close()
+        proc.stderr.close()
     except Exception:
         proc.kill()
         raise

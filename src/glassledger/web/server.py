@@ -708,7 +708,7 @@ with pg.get_connection_context() as conn:
         "status": "CRASH_SAFETY_VERIFIED" if is_safe else "INVARIANT_BREACH",
         "initial_balance": str(initial_balance),
         "post_crash_balance": str(post_crash_balance),
-        "uncommitted_mutation_attempted": "-$5,000.0000 & 1 Order Pending",
+        "uncommitted_mutation_attempted": "-₹5,000.0000 & 1 Order Pending",
         "orphaned_orders_in_db": order_count,
         "os_kill_signal": "SIGKILL / TerminateProcess (proc.kill())",
         "engine_rollback_verified": is_safe,

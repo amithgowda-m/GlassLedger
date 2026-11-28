@@ -1,9 +1,11 @@
+import atexit
 from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import logging
 from pathlib import Path
 import sqlite3
+import threading
 import time
 import uuid
 from typing import Any, Iterator, Optional
@@ -178,6 +180,35 @@ class _Cursor:
         self.close()
 
 
+_POOLS: dict[str, ConnectionPool] = {}
+_POOLS_LOCK = threading.Lock()
+
+
+def _shared_pool(uri: str) -> ConnectionPool:
+    """One connection pool per URI per process (thread-safe), closed at interpreter exit."""
+    with _POOLS_LOCK:
+        pool = _POOLS.get(uri)
+        if pool is None:
+            pool = ConnectionPool(
+                conninfo=uri,
+                min_size=settings.postgres_pool_min,
+                max_size=settings.postgres_pool_max,
+                kwargs={"row_factory": dict_row},
+                open=True,
+            )
+            _POOLS[uri] = pool
+        return pool
+
+
+@atexit.register
+def _close_shared_pools() -> None:
+    with _POOLS_LOCK:
+        pools = list(_POOLS.values())
+        _POOLS.clear()
+    for pool in pools:
+        pool.close()
+
+
 _FALLBACK_WARNED = False
 
 
@@ -213,7 +244,7 @@ class PostgresStorage:
 
     def __init__(self, connection_uri: Optional[str] = None):
         self.uri = connection_uri or settings.postgres_uri
-        self._pool: Optional[ConnectionPool] = None
+
         self._probed: Optional[bool] = None
         self._sqlite_path = Path(settings.sqlite_data_dir) / "glassledger_ledger.db"
         self._sqlite_ready = False
@@ -238,27 +269,23 @@ class PostgresStorage:
 
     def open(self) -> None:
         if self._probe_postgres():
-            if self._pool is None:
-                self._pool = ConnectionPool(
-                    conninfo=self.uri,
-                    min_size=settings.postgres_pool_min,
-                    max_size=settings.postgres_pool_max,
-                    kwargs={"row_factory": dict_row},
-                )
+            _shared_pool(self.uri)
         else:
             _warn_fallback_once(self._sqlite_path)
             self._ensure_sqlite_schema()
 
     def close(self) -> None:
-        if self._pool is not None:
-            self._pool.close()
-            self._pool = None
+        """Closes and evicts the shared pool for this URI; the next user re-creates it lazily."""
+        with _POOLS_LOCK:
+            pool = _POOLS.pop(self.uri, None)
+        if pool is not None:
+            pool.close()
 
     @property
     def pool(self) -> Optional[ConnectionPool]:
-        if not self.is_sqlite_fallback and self._pool is None:
-            self.open()
-        return self._pool
+        if self.is_sqlite_fallback:
+            return None
+        return _shared_pool(self.uri)
 
     # ------------------------------------------------------------------ SQLite fallback
 

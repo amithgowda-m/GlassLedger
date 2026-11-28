@@ -1,3 +1,4 @@
+import atexit
 from datetime import datetime, timezone
 from decimal import Decimal
 import logging
@@ -258,6 +259,25 @@ class FallbackMongoClient:
         pass
 
 
+_CLIENTS: dict[str, MongoClient] = {}
+
+
+def _shared_client(uri: str) -> MongoClient:
+    """One MongoClient per URI per process, as pymongo recommends (it is thread-safe and pooled)."""
+    client = _CLIENTS.get(uri)
+    if client is None:
+        client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+        _CLIENTS[uri] = client
+    return client
+
+
+@atexit.register
+def _close_shared_clients() -> None:
+    for client in _CLIENTS.values():
+        client.close()
+    _CLIENTS.clear()
+
+
 class MongoStorage:
     def __init__(self, uri: Optional[str] = None, db_name: Optional[str] = None):
         self.uri = uri or settings.mongo_uri
@@ -297,7 +317,7 @@ class MongoStorage:
     def connect(self) -> None:
         if self._probe_mongo():
             if self._client is None:
-                self._client = MongoClient(self.uri, serverSelectionTimeoutMS=5000)
+                self._client = _shared_client(self.uri)
                 self._db = self._client[self.db_name]
         else:
             _warn_fallback_once(self._sqlite_path)
@@ -307,8 +327,10 @@ class MongoStorage:
                 self._db = self._client[self.db_name]
 
     def close(self) -> None:
+        # Real MongoClients are shared per process (closed at exit); only the fallback is closed here.
         if self._client is not None:
-            self._client.close()
+            if isinstance(self._client, FallbackMongoClient):
+                self._client.close()
             self._client = None
             self._db = None
 
@@ -417,10 +439,25 @@ class MongoStorage:
         )
 
     def save_ticks(self, ticks: list[Tick], dataset_name: str = "default") -> int:
+        """
+        Inserts ticks, idempotent per (dataset_name, event_id): ticks already stored in the
+        dataset, and repeats within the batch, are skipped. Returns the number inserted.
+        (Time-series collections cannot carry a unique index, so this is enforced here.)
+        """
         if not ticks:
             return 0
+        ids = list({t.event_id for t in ticks})
+        existing = {
+            d["event_id"]
+            for d in self.db.price_history.find(
+                {"dataset_name": dataset_name, "event_id": {"$in": ids}}, {"event_id": 1, "_id": 0}
+            )
+        }
         docs = []
         for t in ticks:
+            if t.event_id in existing:
+                continue
+            existing.add(t.event_id)
             docs.append(
                 {
                     "ts": t.timestamp if t.timestamp.tzinfo else t.timestamp.replace(tzinfo=timezone.utc),
@@ -431,6 +468,8 @@ class MongoStorage:
                     "dataset_name": dataset_name,
                 }
             )
+        if not docs:
+            return 0
         res = self.db.price_history.insert_many(docs)
         return len(res.inserted_ids)
 
